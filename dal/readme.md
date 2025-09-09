@@ -1,0 +1,3 @@
+Dal in go is like Repository in Java world. DAL = data access layer. It is responsible for data access and manipulation.
+It abstracts the underlying data source and provides a clean interface for the rest of the application to interact with the data.
+In this example, we have a simple Todo application that uses a PostgreSQL database to store the todos. The DAL is implemented using the `sqlx` package, which is a library that provides a set of extensions on top of the standard `database/sql` package.

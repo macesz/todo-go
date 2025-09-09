@@ -1,4 +1,4 @@
-package main // All files are in "main" package
+package domain
 
 import (
 	"errors" // For error handling (like Java's Exception)
@@ -8,10 +8,10 @@ import (
 // Todo is a struct representing a single todo item.
 // It's like a Java class with fields, or a JS object.
 type Todo struct {
-	ID        int       `json:"id"` // json tag for easy JSON encoding (like @JsonProperty in Java)
-	Title     string    `json:"title"`
-	Done      bool      `json:"done"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID        int
+	Title     string
+	Done      bool
+	CreatedAt time.Time
 }
 
 // Validate is a receiver method (attached to Todo).
