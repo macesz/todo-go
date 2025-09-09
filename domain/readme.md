@@ -1,3 +1,5 @@
+## Domain
+
 Domain package in Go, is like Model in Java world. It is responsible for defining the core business entities and logic of the application.
 It abstracts the underlying data structures and provides a clean interface for the rest of the application to interact with the business entities.
 In this example, we have a simple Todo application that defines a `Todo` struct to represent a todo item/entity. The Domain layer is responsible for:
