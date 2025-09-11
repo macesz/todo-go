@@ -4,6 +4,7 @@ Dal in go is like Repository in Java world. DAL = data access layer. It is respo
 It abstracts the underlying data source and provides a clean interface for the rest of the application to interact with the data.
 In this example, we have a simple Todo application that uses a PostgreSQL database to store the todos. The DAL is implemented using the `sqlx` package, which is a library that provides a set of extensions on top of the standard `database/sql` package.
 
+
 The DAL layer interacts with the Service layer, which contains the business logic of the application. The Service layer interacts with the Domain layer to perform operations on the business entities.
 The DAL layer is responsible for:
 - Connecting to the database
@@ -11,6 +12,7 @@ The DAL layer is responsible for:
 - Mapping the results to Go structs
 - Handling database transactions
 - Managing database connections
+
 
 The DAL layer is typically organized into repositories, where each repository corresponds to a specific entity or resource in the application. Each repository is responsible for handling the data access and manipulation for that entity, using SQL queries and commands to interact with the database.
 The DAL layer can also include utility functions for common database operations, such as pagination, filtering, and sorting. These utility functions can be reused across different repositories, promoting code reuse and maintainability.
@@ -22,6 +24,7 @@ Web packages used in this example:
 - database/sql: The standard library package for interacting with SQL databases in Go.
 - context: The standard library package for managing request-scoped values, cancellation signals, and deadlines.
 - log: The standard library package for logging messages to the console or a file.
+
 
 Additional notes:
 - The DAL layer does not directly interact with any web packages, as it is focused on data access and manipulation.
