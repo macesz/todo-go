@@ -27,7 +27,13 @@ func NewHandlers(service TodoService) *TodoHandlers {
 
 // ListTodos handles GET /todos requests.
 func (h *TodoHandlers) ListTodos(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, h.Service.ListTodos())
+	todos, err := h.Service.ListTodos(r.Context())
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, todos)
 }
 
 // CreateTodo handles POST /todos requests.
@@ -46,7 +52,7 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 
 	// Create the todo using the service
 	// If creation fails, return 400 Bad Request
-	todo, err := h.Service.CreateTodo(todo.Title)
+	todo, err := h.Service.CreateTodo(r.Context(), todo.Title)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, err.Error())
 		return
@@ -77,8 +83,8 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	todo, ok := h.Service.GetTodo(id) // Get the todo from the service
-	if !ok {
+	todo, err := h.Service.GetTodo(r.Context(), id) // Get the todo from the service
+	if err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 		return
 	}
@@ -119,7 +125,7 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 
 	// Update the todo using the service
 	// If update fails, return 400 Bad Request
-	updated, err := h.Service.UpdateTodo(id, todo.Title, todo.Done)
+	updated, err := h.Service.UpdateTodo(r.Context(), id, todo.Title, todo.Done)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, err.Error())
 		return
@@ -143,7 +149,7 @@ func (h *TodoHandlers) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ok := h.Service.DeleteTodo(id); !ok {
+	if err := h.Service.DeleteTodo(r.Context(), id); err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 		return
 	}

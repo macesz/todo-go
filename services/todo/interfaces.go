@@ -1,13 +1,17 @@
 package todo
 
-import "github.com/macesz/todo-go/domain"
+import (
+	"context"
+
+	"github.com/macesz/todo-go/domain"
+)
 
 // TodoStore defines the interface for a todo storage backend.
 // Like a Java interface
 type TodoStore interface {
-	List() []domain.Todo
-	Create(title string) (domain.Todo, error)
-	Get(id int) (domain.Todo, bool)
-	Update(id int, title string, done bool) (domain.Todo, error)
-	Delete(id int) bool
+	List(ctx context.Context) ([]domain.Todo, error)
+	Create(ctx context.Context, title string) (domain.Todo, error)
+	Get(ctx context.Context, id int) (domain.Todo, error)
+	Update(ctx context.Context, id int, title string, done bool) (domain.Todo, error)
+	Delete(ctx context.Context, id int) error
 }

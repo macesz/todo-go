@@ -2,6 +2,7 @@ package infiletodo
 
 import (
 	"bufio"
+	"context"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -71,42 +72,40 @@ func (s *InFileStore) saveToFileLocked() error {
 	if err != nil {
 		return fmt.Errorf("create temp file: %w", err)
 	}
-	
+
 	// Write CSV data to temp file
 	tmpName := tmp.Name()
 
-
 	writer := csv.NewWriter(tmp) // buffered writer for efficiency
 
-	
 	// Stable ordering by ID for predictable diffs
 	ids := make([]int, 0, len(s.data)) // preallocate slice
 	for id := range s.data {
 		ids = append(ids, id)
 	}
-	
+
 	// Sort IDs to ensure consistent order
 	sort.Ints(ids)
 
 	// Write each todo as a CSV record
 	for _, id := range ids {
 		todo := s.data[id] // get todo by id, (s -> InFileStore)
-		rec := []string{	// CSV record as slice of strings
-			strconv.Itoa(todo.ID),	// convert int to string
-			todo.Title,		// Title is already a string
-			strconv.FormatBool(todo.Done),	// convert bool to string
-			todo.CreatedAt.UTC().Format(time.RFC3339), 	// format time to string in RFC3339
+		rec := []string{   // CSV record as slice of strings
+			strconv.Itoa(todo.ID),                     // convert int to string
+			todo.Title,                                // Title is already a string
+			strconv.FormatBool(todo.Done),             // convert bool to string
+			todo.CreatedAt.UTC().Format(time.RFC3339), // format time to string in RFC3339
 		}
 		// Write the record
 		// If write fails, clean up temp file and return error
 		if err := writer.Write(rec); err != nil {
-			_ = tmp.Close()	// close temp file
-			_ = os.Remove(tmpName)	// remove temp file
-			return fmt.Errorf("write csv: %w", err)	
+			_ = tmp.Close()        // close temp file
+			_ = os.Remove(tmpName) // remove temp file
+			return fmt.Errorf("write csv: %w", err)
 		}
 	}
 	writer.Flush() // flush buffered data to underlying writer
-	
+
 	// Check for errors during flush
 	if err := writer.Error(); err != nil {
 		_ = tmp.Close()
@@ -120,25 +119,24 @@ func (s *InFileStore) saveToFileLocked() error {
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("fsync temp file: %w", err)
 	}
-	
+
 	// Close the temp file
 	// Closing also flushes, but we already flushed above
 	// We check for close errors separately to handle them
-	// (e.g., disk full errors may appear on close)	
+	// (e.g., disk full errors may appear on close)
 	if err := tmp.Close(); err != nil {
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("close temp file: %w", err)
 	}
 
-	// Atomic replace of the original file with the temp file 
+	// Atomic replace of the original file with the temp file
 	// os.Rename is atomic on POSIX systems if source and target are on the same filesystem
 	if err := os.Rename(tmpName, s.filePath); err != nil {
 		_ = os.Remove(tmpName) // remove temp file on error
-		return fmt.Errorf("atomic replace: %w", err) 
+		return fmt.Errorf("atomic replace: %w", err)
 	}
 	return nil
 }
-
 
 // loadFromFile loads all todos into memory.
 // Holds the write lock while replacing the map and computing nextID.
@@ -149,7 +147,7 @@ func (s *InFileStore) loadFromFile() error {
 	// Open the file for reading
 	f, err := os.Open(s.filePath) // open for read-only
 	if err != nil {
-		return fmt.Errorf("open data file: %w", err) 
+		return fmt.Errorf("open data file: %w", err)
 	}
 	defer f.Close() // ensure file is closed
 
@@ -161,12 +159,12 @@ func (s *InFileStore) loadFromFile() error {
 	if err != nil && err != io.EOF {
 		return fmt.Errorf("peek data file: %w", err)
 	}
-	
+
 	// If empty, initialize empty map and return
 	if len(peek) == 0 {
 		// Empty file, nothing to load
 		s.data = make(map[int]domain.Todo) // reset data map
-		s.nextID = 1 		// reset nextID
+		s.nextID = 1                       // reset nextID
 		return nil
 	}
 
@@ -176,7 +174,7 @@ func (s *InFileStore) loadFromFile() error {
 	}
 
 	// Read CSV records
-	r := csv.NewReader(f) // CSV reader
+	r := csv.NewReader(f)  // CSV reader
 	r.FieldsPerRecord = -1 // allow variable fields; we will validate manually
 
 	// Read all records at once
@@ -231,7 +229,7 @@ func (s *InFileStore) loadFromFile() error {
 }
 
 // Create adds a new Todo with the given title.
-func (s *InFileStore) Create(title string) (domain.Todo, error) {
+func (s *InFileStore) Create(_ context.Context, title string) (domain.Todo, error) {
 	// Create a new Todo with the given title and default values
 	todo := domain.Todo{
 		ID:        0,
@@ -263,7 +261,7 @@ func (s *InFileStore) Create(title string) (domain.Todo, error) {
 }
 
 // List returns all Todos sorted by ID ascending.
-func (s *InFileStore) List() []domain.Todo {
+func (s *InFileStore) List(_ context.Context) ([]domain.Todo, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -277,20 +275,24 @@ func (s *InFileStore) List() []domain.Todo {
 	for _, id := range ids {
 		todos = append(todos, s.data[id])
 	}
-	return todos
+	return todos, nil
 }
 
 // Get retrieves a Todo by ID.
-func (s *InFileStore) Get(id int) (domain.Todo, bool) {
+func (s *InFileStore) Get(_ context.Context, id int) (domain.Todo, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	todo, ok := s.data[id]
-	return todo, ok
+	if !ok {
+		return domain.Todo{}, errors.New("todo not found")
+	}
+
+	return todo, nil
 }
 
 // Update modifies an existing Todo by ID.
-func (s *InFileStore) Update(id int, title string, done bool) (domain.Todo, error) {
+func (s *InFileStore) Update(_ context.Context, id int, title string, done bool) (domain.Todo, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -314,18 +316,19 @@ func (s *InFileStore) Update(id int, title string, done bool) (domain.Todo, erro
 }
 
 // Delete removes a Todo by ID.
-func (s *InFileStore) Delete(id int) bool {
+func (s *InFileStore) Delete(_ context.Context, id int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if _, ok := s.data[id]; !ok {
-		return false
+		return errors.New("todo not found")
 	}
 	delete(s.data, id)
 
 	if err := s.saveToFileLocked(); err != nil {
 		// Could also consider restoring the item on error
-		return false
+		return err
 	}
-	return true
+
+	return nil
 }
