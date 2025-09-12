@@ -8,10 +8,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-// StartServer initializes the router, sets up routes, and starts the HTTP server.
-// It takes a TodoService to handle business logic.
-// Like setting up an Express app or Java Servlet.
-
 func StartServer(todoService TodoService) {
 	// Chi router: like Express app or Java Servlet
 	r := chi.NewRouter()
