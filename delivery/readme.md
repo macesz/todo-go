@@ -10,10 +10,10 @@ The Delivery layer is responsible for:
 - Validating the request data
 - Calling the appropriate Service layer methods
 - Formatting the response data
-- Sending the HTTP response back to the client
+- Sending the HTTP response back to the client  
 
-The Delivery layer is typically organized into handlers, where each handler corresponds to a specific HTTP endpoint. Each handler is responsible for handling a specific HTTP method (GET, POST, PUT, DELETE) and performing the necessary operations using the Service layer.
-The Delivery layer can also include middleware for tasks such as authentication, logging, and error handling. Middleware functions can be applied to specific routes or to the entire router, allowing for reusable and modular code.
+The Delivery layer is typically organized into handlers, where each handler corresponds to a specific HTTP endpoint. Each handler is responsible for handling a specific HTTP method (GET, POST, PUT, DELETE) and performing the necessary operations using the Service layer.  
+The Delivery layer can also include middleware for tasks such as authentication, logging, and error handling. Middleware functions can be applied to specific routes or to the entire router, allowing for reusable and modular code. 
 
 In summary, the Delivery layer in Go is responsible for handling HTTP requests and responses, and it interacts with the Service layer to perform the necessary operations. It provides a clean interface for the rest of the application to interact with the HTTP layer, and it can include middleware for additional functionality.
 
@@ -89,10 +89,9 @@ Handler package: todohandler
 - The handler package can also include error handling logic to manage and propagate errors related to HTTP requests and responses.
 - The handler package can also include middleware functions specific to the handlers, such as authentication and authorization.
 - The handler package is typically organized into separate files for each entity or resource in the application, making it easier to maintain and extend the codebase over time.
-- The handler package is a crucial part of the Delivery layer, as it directly handles the HTTP requests and responses for the application.
+- The handler package is a crucial part of the Delivery layer, as it directly handles the HTTP requests and responses for the application.  
 - The handler package is similar to the Controller layer in a Java application, as it handles the incoming requests and delegates the business logic to the Service layer.
-- The handler package can also include unit tests for the handlers to ensure that they behave as expected and handle edge cases correctly.
-
+- The handler package can also include unit tests for the handlers to ensure that they behave as expected and handle edge cases correctly.  
 - The handler package can also include integration tests to verify the end-to-end functionality of the HTTP endpoints, ensuring that the handlers, Service layer, and DAL layer work together correctly.
 - The handler package can also include documentation for the HTTP endpoints, such as Swagger/OpenAPI specifications, to provide a clear understanding of the API for developers and consumers.
 - The handler package can also include logging functionality to log important events and errors related to HTTP requests and responses, helping with debugging and monitoring the application in production.
