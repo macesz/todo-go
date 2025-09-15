@@ -119,3 +119,378 @@ func TestListTodos(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateTodo(t *testing.T) {
+	t.Parallel()
+
+	// Define the fields of the TodoService struct
+	type fields struct {
+		Store *mocks.TodoStore
+	}
+
+	// Define the arguments for the CreateTodo method
+	type args struct {
+		ctx   context.Context
+		title string
+	}
+
+	now := time.Now()
+
+	// Define the test cases
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		wantErr   bool
+		initMocks func(tt *testing.T, ta *args, s *TodoService) // Function to initialize mocks
+		want      domain.Todo
+	}{
+		{
+			name:   "success",
+			fields: fields{},
+			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
+				store := mocks.NewTodoStore(tt)
+
+				// Set up the expected behavior of the mock store, "ta." means test args
+				// When Create is called with the given context and title, return a predefined todo
+				store.On("Create", ta.ctx, ta.title).Return(domain.Todo{
+					ID:        1,
+					Title:     ta.title,
+					Done:      false,
+					CreatedAt: now,
+				}, nil).Once()
+
+				s.Store = store
+			},
+			wantErr: false,
+			args: args{
+				ctx:   context.Background(),
+				title: "New Todo",
+			},
+			want: domain.Todo{
+				ID:        1,
+				Title:     "New Todo",
+				Done:      false,
+				CreatedAt: now,
+			},
+		},
+		{
+			name:   "store error",
+			fields: fields{},
+			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
+				store := mocks.NewTodoStore(tt)
+
+				store.On("Create", ta.ctx, ta.title).Return(domain.Todo{}, errors.New("could not create")).Once()
+
+				s.Store = store
+			},
+			wantErr: true,
+			args: args{
+				ctx:   context.Background(),
+				title: "New Todo",
+			},
+			want: domain.Todo{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			s := &TodoService{
+				Store: tt.fields.Store,
+			}
+
+			tt.initMocks(t, &tt.args, s)
+
+			got, err := s.CreateTodo(tt.args.ctx, tt.args.title)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CreateTodo() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("CreateTodo() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetTodo(t *testing.T) {
+	t.Parallel()
+
+	// Define the fields of the TodoService struct
+	type fields struct {
+		Store *mocks.TodoStore
+	}
+
+	// Define the arguments for the GetTodo method
+	type args struct {
+		ctx context.Context
+		id  int
+	}
+
+	now := time.Now()
+
+	// Define the test cases
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		wantErr   bool
+		initMocks func(tt *testing.T, ta *args, s *TodoService) // Function to initialize mocks
+		want      domain.Todo
+	}{
+		{
+			name:   "success",
+			fields: fields{},
+			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
+				store := mocks.NewTodoStore(tt)
+
+				// Set up the expected behavior of the mock store
+				// When Get is called with the given context and id, return a predefined todo
+				store.On("Get", ta.ctx, ta.id).Return(domain.Todo{
+					ID:        ta.id,
+					Title:     "Test Todo",
+					Done:      false,
+					CreatedAt: now,
+				}, nil).Once()
+
+				s.Store = store
+			},
+			wantErr: false,
+			args: args{
+				ctx: context.Background(),
+				id:  1,
+			},
+			want: domain.Todo{
+				ID:        1,
+				Title:     "Test Todo",
+				Done:      false,
+				CreatedAt: now,
+			},
+		},
+		{
+			name:   "not found",
+			fields: fields{},
+			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
+				store := mocks.NewTodoStore(tt)
+
+				store.On("Get", ta.ctx, ta.id).Return(domain.Todo{}, errors.New("not found")).Once()
+
+				s.Store = store
+			},
+			wantErr: true,
+			args: args{
+				ctx: context.Background(),
+				id:  999,
+			},
+			want: domain.Todo{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			s := &TodoService{
+				Store: tt.fields.Store,
+			}
+
+			tt.initMocks(t, &tt.args, s)
+
+			got, err := s.GetTodo(tt.args.ctx, tt.args.id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetTodo() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("GetTodo() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestUpdateTodo(t *testing.T) {
+
+	t.Parallel()
+
+	// Define the fields of the TodoService struct
+
+	type fields struct {
+		Store *mocks.TodoStore
+	}
+
+	// Define the arguments for the UpdateTodo method
+	// This allows us to pass different contexts, ids, titles, and done statuses for each test case
+	type args struct {
+		ctx   context.Context
+		id    int
+		title string
+		done  bool
+	}
+
+	now := time.Now()
+
+	// Define the test cases
+
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		wantErr   bool
+		initMocks func(tt *testing.T, ta *args, s *TodoService) // Function to initialize mocks
+		want      domain.Todo
+	}{
+		{
+			name:   "success",
+			fields: fields{},
+			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
+				store := mocks.NewTodoStore(tt)
+
+				// Set up the expected behavior of the mock store
+				// When Update is called with the given context, id, title, and done status, return a predefined todo
+				store.On("Update", ta.ctx, ta.id, ta.title, ta.done).Return(domain.Todo{
+					ID:        ta.id,
+					Title:     ta.title,
+					Done:      ta.done,
+					CreatedAt: now,
+				}, nil).Once()
+
+				s.Store = store
+			},
+			wantErr: false,
+			args: args{
+				ctx:   context.Background(),
+				id:    1,
+				title: "Updated Todo",
+				done:  true,
+			},
+			want: domain.Todo{
+				ID:        1,
+				Title:     "Updated Todo",
+				Done:      true,
+				CreatedAt: now,
+			},
+		},
+		{
+			name:   "not found",
+			fields: fields{},
+			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
+				store := mocks.NewTodoStore(tt)
+
+				store.On("Update", ta.ctx, ta.id, ta.title, ta.done).Return(domain.Todo{}, errors.New("not found")).Once()
+
+				s.Store = store
+			},
+			wantErr: true,
+			args: args{
+				ctx:   context.Background(),
+				id:    999,
+				title: "Updated Todo",
+				done:  true,
+			},
+			want: domain.Todo{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			s := &TodoService{
+				Store: tt.fields.Store,
+			}
+
+			tt.initMocks(t, &tt.args, s)
+
+			got, err := s.UpdateTodo(tt.args.ctx, tt.args.id, tt.args.title, tt.args.done)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("UpdateTodo() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("UpdateTodo() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDeleteTodo(t *testing.T) {
+
+	t.Parallel()
+
+	// Define the fields of the TodoService struct
+	type fields struct {
+		Store *mocks.TodoStore
+	}
+
+	// Define the arguments for the DeleteTodo method
+	// This allows us to pass different contexts and ids for each test case
+	type args struct {
+		ctx context.Context
+		id  int
+	}
+
+	// Define the test cases
+
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		wantErr   bool
+		initMocks func(tt *testing.T, ta *args, s *TodoService) // Function to initialize mocks
+	}{
+		{
+			name:   "success",
+			fields: fields{},
+			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
+				store := mocks.NewTodoStore(tt)
+
+				// Set up the expected behavior of the mock store
+				// When Delete is called with the given context and id, return nil (no error)
+				store.On("Delete", ta.ctx, ta.id).Return(nil).Once()
+
+				s.Store = store
+			},
+			wantErr: false,
+			args: args{
+				ctx: context.Background(),
+				id:  1,
+			},
+		},
+		{
+			name:   "not found",
+			fields: fields{},
+			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
+				store := mocks.NewTodoStore(tt)
+
+				store.On("Delete", ta.ctx, ta.id).Return(errors.New("not found")).Once()
+
+				s.Store = store
+			},
+			wantErr: true,
+			args: args{
+				ctx: context.Background(),
+				id:  999,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			s := &TodoService{
+				Store: tt.fields.Store,
+			}
+
+			tt.initMocks(t, &tt.args, s)
+
+			err := s.DeleteTodo(tt.args.ctx, tt.args.id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DeleteTodo() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}

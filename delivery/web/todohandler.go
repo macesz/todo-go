@@ -58,7 +58,7 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respTodo := Todo{
+	respTodo := domain.TodoDTO{
 		ID:        todo.ID,
 		Title:     todo.Title,
 		Done:      todo.Done,
@@ -89,7 +89,7 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respTodo := Todo{
+	respTodo := domain.TodoDTO{
 		ID:        todo.ID,
 		Title:     todo.Title,
 		Done:      todo.Done,
@@ -114,18 +114,18 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var todo Todo // Empty Todo struct to decode into
+	var todoDTO domain.TodoDTO // Empty Todo struct to decode into
 
 	// Decode the JSON body into the todo struct
 	// If decoding fails, return 400 Bad Request
-	if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&todoDTO); err != nil {
 		writeJSON(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	// Update the todo using the service
 	// If update fails, return 400 Bad Request
-	updated, err := h.Service.UpdateTodo(r.Context(), id, todo.Title, todo.Done)
+	updated, err := h.Service.UpdateTodo(r.Context(), id, todoDTO.Title, todoDTO.Done)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, err.Error())
 		return
