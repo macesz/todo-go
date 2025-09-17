@@ -2,11 +2,13 @@ package web
 
 import (
 	"encoding/json" // For JSON (like JSON.parse/stringify in JS)
-	"net/http"      // Standard HTTP library (like fetch in JS or HttpServlet in Java)
+	"io"
+	"net/http" // Standard HTTP library (like fetch in JS or HttpServlet in Java)
 	"strconv"
 	"time"
 
 	chi "github.com/go-chi/chi/v5"
+	validate "github.com/go-playground/validator/v10" // For struct validation (like Joi in JS or Hibernate Validator in Java)
 	"github.com/macesz/todo-go/domain"
 	// String conversions (like parseInt in JS)
 	// String utils (like .split() in JS)
@@ -25,6 +27,16 @@ func NewHandlers(service TodoService) *TodoHandlers {
 	}
 }
 
+// NewHealthHandler returns a handler that reports basic health info.
+func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	// A very simple health check.
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	// In the future we could report back on the status of our DB, or our cache
+	// (e.g. Redis) by performing a simple PING, and include them in the response.
+	io.WriteString(w, `{"alive": true}`)
+}
+
 // ListTodos handles GET /todos requests.
 func (h *TodoHandlers) ListTodos(w http.ResponseWriter, r *http.Request) {
 	todos, err := h.Service.ListTodos(r.Context())
@@ -38,21 +50,26 @@ func (h *TodoHandlers) ListTodos(w http.ResponseWriter, r *http.Request) {
 
 // CreateTodo handles POST /todos requests.
 func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
-	var todo domain.Todo // Empty Todo struct to decode into
+	var reqTodo domain.CreateTodoDTO // Empty Todo struct to decode into
 
 	// Decode the JSON body into the todo struct
 	// json.NewDecoder is like JSON.parse in JS
 	// r.Body is the request body (like req.body in Express)
 	// &todo is the address of the todo variable (like passing by reference in Java)
 	// If decoding fails, return 400 Bad Request
-	if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&reqTodo); err != nil {
 		writeJSON(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if validate.New().Struct(reqTodo) != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "title is required and must be between 1 and 255 characters"})
 		return
 	}
 
 	// Create the todo using the service
 	// If creation fails, return 400 Bad Request
-	todo, err := h.Service.CreateTodo(r.Context(), todo.Title)
+	todo, err := h.Service.CreateTodo(r.Context(), reqTodo.Title)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, err.Error())
 		return
@@ -114,13 +131,20 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var todoDTO domain.TodoDTO // Empty Todo struct to decode into
+	var todoDTO domain.UpdateTodoDTO // Empty Todo struct to decode into
 
 	// Decode the JSON body into the todo struct
 	// If decoding fails, return 400 Bad Request
 	if err := json.NewDecoder(r.Body).Decode(&todoDTO); err != nil {
 		writeJSON(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	// Validate the UpdateTodoDTO struct
+	if validate.New().Struct(todoDTO) != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "title is required and must be between 1 and 255 characters; done is required"})
+		return
+
 	}
 
 	// Update the todo using the service
@@ -131,7 +155,14 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, updated) // Return the updated todo as JSON
+	respTodo := domain.TodoDTO{
+		ID:        updated.ID,
+		Title:     updated.Title,
+		Done:      updated.Done,
+		CreatedAt: updated.CreatedAt.Format(time.RFC3339), // Format time as ISO string
+	}
+
+	writeJSON(w, http.StatusOK, respTodo) // Return the updated todo as JSON
 }
 
 // DeleteTodo handles DELETE /todos/{id} requests.
@@ -161,12 +192,7 @@ func (h *TodoHandlers) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 // type any = interface{} any is an alias for interface{} and is equivalent to interface{} in all ways.
 func writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json") // Set content type header
-	// Set the status code and encode the data as JSON
-	// json.NewEncoder is like JSON.stringify in JS
-	// w is the response writer (like res in Express)
-	// data is the data to encode (can be struct, map, slice, etc.)
-	// If encoding fails, we can't do much here, so we ignore the error
-	// In a real app, consider logging the error
+
 	w.WriteHeader(status)           // Set the status code
 	json.NewEncoder(w).Encode(data) // Encode and write the JSON response
 }

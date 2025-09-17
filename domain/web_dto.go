@@ -10,3 +10,16 @@ type TodoDTO struct {
 	Done      bool   `json:"done"`
 	CreatedAt string `json:"createdAt"`
 }
+
+type CreateTodoDTO struct {
+	Title string `json:"title" validate:"required,min=1,max=255"`
+}
+
+type UpdateTodoDTO struct {
+	Title string `json:"title" validate:"required,min=1,max=255"`
+	Done  bool   `json:"done" validate:"required"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
