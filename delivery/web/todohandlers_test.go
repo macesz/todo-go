@@ -58,6 +58,7 @@ func TestHealthCheckHandler(t *testing.T) {
 func TestListTodos(t *testing.T) {
 	fixedTime := time.Date(2024, time.January, 1, 12, 0, 0, 0, time.UTC)
 
+	// Define test cases for different scenarios
 	tests := []struct {
 		name           string
 		mockReturn     []domain.Todo
@@ -89,6 +90,8 @@ func TestListTodos(t *testing.T) {
 			expectedBody:   `{"error":"http: Server closed"}` + "\n",
 		},
 	}
+
+	// Run each test case in a subtest to isolate them and allow parallel execution
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -254,19 +257,22 @@ func TestGetTodo(t *testing.T) {
 				mockService.On("GetTodo", mock.Anything, mock.AnythingOfType("int")).Return(tt.mockReturn, tt.mockError)
 			}
 
-			handlers := &TodoHandlers{Service: mockService}
-			handler := http.HandlerFunc(handlers.GetTodo)
+			handler := &TodoHandlers{Service: mockService}
+			// handler := http.HandlerFunc(handlers.GetTodo)
 
 			rr := httptest.NewRecorder()
 
 			req := httptest.NewRequest("GET", "/todos/"+tt.url, nil)
 
-			// Use chi to set URL params
+			// Use chi to set URL params, (rctx is for routing context), so we can simulate URL parameters
 			rctx := chi.NewRouteContext()
+			// Extract the ID from the URL path and set it as a URL parameter
 			rctx.URLParams.Add("id", strings.TrimPrefix(tt.url, "/todos/"))
+			// Add the routing context to the request's context
 			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
-			handler.ServeHTTP(rr, req)
+			handler.GetTodo(rr, req)
+			// handler.ServeHTTP(rr, req)
 
 			if status := rr.Code; status != tt.expectedStatus {
 				t.Errorf("handler returned wrong status code: got %v want %v",
@@ -360,6 +366,7 @@ func TestUpdateTodo(t *testing.T) {
 				mockService.On("UpdateTodo", mock.Anything, tt.mockID, tt.mockTitle, tt.mockDone).
 					Return(tt.mockReturn, tt.mockError)
 			}
+
 			handlers := &TodoHandlers{Service: mockService}
 
 			rr := httptest.NewRecorder()
