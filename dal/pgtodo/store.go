@@ -6,7 +6,6 @@ import (
 	"text/template"
 
 	"github.com/jmoiron/sqlx"
-
 	"github.com/macesz/todo-go/domain"
 )
 
@@ -38,7 +37,7 @@ func (s *Store) ListTodo(ctx context.Context) ([]domain.Todo, error) {
 	templateParams := map[string]any{}
 
 	// Prepare the query string, by using the template.
-	querystr, err := prepareQuery(s.queryTemplates[list_todo_query], templateParams)
+	querystr, err := prepareQuery(s.queryTemplates[listTodoQuery], templateParams)
 	if err != nil {
 		return nil, err
 	}
@@ -75,11 +74,10 @@ func (s *Store) ListTodo(ctx context.Context) ([]domain.Todo, error) {
 	return todos, nil
 }
 
-func (s *Store) CreateTodoAlt(ctx context.Context, todo domain.Todo) (int, error) {
-
+func (s *Store) CreateTodo(ctx context.Context, todo *domain.Todo) (int, error) {
 	templateParams := map[string]any{}
 
-	querystr, err := prepareQuery(s.queryTemplates[create_todo_query], templateParams)
+	querystr, err := prepareQuery(s.queryTemplates[createTodoQuery], templateParams)
 	if err != nil {
 		return 0, err
 	}
@@ -95,17 +93,17 @@ func (s *Store) CreateTodoAlt(ctx context.Context, todo domain.Todo) (int, error
 		return 0, err
 	}
 
-	return id, nil
+	todo.ID = id
 
+	return id, nil
 }
 
-func (s *Store) GetTodo(ctx context.Context, id int) (domain.Todo, error) {
-
+func (s *Store) GetTodo(ctx context.Context, id int) (*domain.Todo, error) {
 	templateParams := map[string]any{}
 
-	querystr, err := prepareQuery(s.queryTemplates[get_todo_query], templateParams)
+	querystr, err := prepareQuery(s.queryTemplates[getTodoQuery], templateParams)
 	if err != nil {
-		return domain.Todo{}, err
+		return nil, err
 	}
 
 	queryParams := map[string]any{
@@ -116,17 +114,16 @@ func (s *Store) GetTodo(ctx context.Context, id int) (domain.Todo, error) {
 	//QueryRowxContext ✅ - Single row (GetTodo, GetUser, etc.)
 	err = s.db.QueryRowxContext(ctx, querystr, queryParams).StructScan(&todo)
 	if err != nil {
-		return domain.Todo{}, err
+		return nil, err
 	}
-	return todo, nil
 
+	return &todo, nil
 }
 
 func (s *Store) UpdateTodo(ctx context.Context, todo domain.Todo) error {
-
 	templateParams := map[string]any{}
 
-	querystr, err := prepareQuery(s.queryTemplates[update_todo_query], templateParams)
+	querystr, err := prepareQuery(s.queryTemplates[updateTodoQuery], templateParams)
 	if err != nil {
 		return err
 	}
@@ -147,19 +144,18 @@ func (s *Store) UpdateTodo(ctx context.Context, todo domain.Todo) error {
 	if err != nil {
 		return err
 	}
+
 	if rowsAffected == 0 {
 		return errors.New("todo not found")
 	}
 
 	return nil
-
 }
 
 func (s *Store) DeleteTodo(ctx context.Context, id int) error {
-
 	templateParams := map[string]any{}
 
-	querystr, err := prepareQuery(s.queryTemplates[delete_todo_query], templateParams)
+	querystr, err := prepareQuery(s.queryTemplates[deleteTodoQuery], templateParams)
 	if err != nil {
 		return err
 	}
@@ -178,10 +174,10 @@ func (s *Store) DeleteTodo(ctx context.Context, id int) error {
 	if err != nil {
 		return err
 	}
+
 	if rowsAffected == 0 {
 		return errors.New("todo not found")
 	}
 
 	return nil
-
 }

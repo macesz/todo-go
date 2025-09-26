@@ -12,11 +12,11 @@ import (
 var files embed.FS
 
 const (
-	list_todo_query   = "list_todo"
-	create_todo_query = "create_todo"
-	get_todo_query    = "get_todo"
-	update_todo_query = "update_todo"
-	delete_todo_query = "delete_todo"
+	listTodoQuery   = "list_todo"
+	createTodoQuery = "create_todo"
+	getTodoQuery    = "get_todo"
+	updateTodoQuery = "update_todo"
+	deleteTodoQuery = "delete_todo"
 )
 
 func buildQueries(dir string) (map[string]*template.Template, error) {

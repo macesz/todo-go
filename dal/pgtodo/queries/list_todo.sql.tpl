@@ -1,1 +1,1 @@
-SELECT * FROM todos WHERE id={.Id};
+SELECT * FROM todos;
