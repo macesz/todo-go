@@ -94,7 +94,7 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := strconv.Atoi(idr) // Convert id string to int
+	id, err := strconv.ParseInt(idr, 10, 64) // Convert id string to int
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "id must be an integer"})
 		return
@@ -125,7 +125,7 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := strconv.Atoi(idr) // Convert id string to int
+	id, err := strconv.ParseInt(idr, 10, 64) // Convert id string to int
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "id must be an integer"})
 		return
@@ -174,7 +174,7 @@ func (h *TodoHandlers) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := strconv.Atoi(idr) // Convert id string to int
+	id, err := strconv.ParseInt(idr, 10, 64) // Convert id string to int
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "id must be an integer"})
 		return

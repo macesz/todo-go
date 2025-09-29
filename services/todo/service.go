@@ -11,7 +11,7 @@ import (
 // Here we could add more business logic if needed
 // For example, filtering, sorting, etc.
 
-func (s *TodoService) ListTodos(ctx context.Context) ([]domain.Todo, error) {
+func (s *TodoService) ListTodos(ctx context.Context) ([]*domain.Todo, error) {
 	return s.Store.List(ctx) // Delegate to the store
 }
 
@@ -20,7 +20,7 @@ func (s *TodoService) ListTodos(ctx context.Context) ([]domain.Todo, error) {
 // Like a service method in Java or JS
 // Here we could add more business logic if needed
 // For example, checking for duplicates, logging, etc.
-func (s *TodoService) CreateTodo(ctx context.Context, title string) (domain.Todo, error) {
+func (s *TodoService) CreateTodo(ctx context.Context, title string) (*domain.Todo, error) {
 	return s.Store.Create(ctx, title) // Delegate to the store
 }
 
@@ -29,7 +29,7 @@ func (s *TodoService) CreateTodo(ctx context.Context, title string) (domain.Todo
 // Like a service method in Java or JS
 // Here we could add more business logic if needed
 // For example, logging, access control, etc.
-func (s *TodoService) GetTodo(ctx context.Context, id int) (domain.Todo, error) {
+func (s *TodoService) GetTodo(ctx context.Context, id int64) (*domain.Todo, error) {
 	return s.Store.Get(ctx, id) // Delegate to the store
 }
 
@@ -38,7 +38,7 @@ func (s *TodoService) GetTodo(ctx context.Context, id int) (domain.Todo, error) 
 // Like a service method in Java or JS
 // Here we could add more business logic if needed
 // For example, validation, logging, etc.
-func (s *TodoService) UpdateTodo(ctx context.Context, id int, title string, done bool) (domain.Todo, error) {
+func (s *TodoService) UpdateTodo(ctx context.Context, id int64, title string, done bool) (*domain.Todo, error) {
 	return s.Store.Update(ctx, id, title, done) // Delegate to the store
 }
 
@@ -47,6 +47,6 @@ func (s *TodoService) UpdateTodo(ctx context.Context, id int, title string, done
 // Like a service method in Java or JS
 // Here we could add more business logic if needed
 // For example, logging, cascading deletes, etc.
-func (s *TodoService) DeleteTodo(ctx context.Context, id int) error {
+func (s *TodoService) DeleteTodo(ctx context.Context, id int64) error {
 	return s.Store.Delete(ctx, id) // Delegate to the store
 }

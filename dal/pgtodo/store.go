@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"text/template"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/macesz/todo-go/domain"
@@ -28,9 +29,9 @@ func CreateStore(db *sqlx.DB) *Store {
 	}
 }
 
-// ListTodo retrieves a list of todos from the database.
-func (s *Store) ListTodo(ctx context.Context) ([]domain.Todo, error) {
-	todos := make([]domain.Todo, 0)
+// List retrieves a list of todos from the database.
+func (s *Store) List(ctx context.Context) ([]*domain.Todo, error) {
+	todos := make([]*domain.Todo, 0)
 
 	// Template parameters are not safe to use directly in the query, because they can be used to inject SQL code.
 	// I can use anything that is not a user input, like Table Name, Column Name, etc.
@@ -63,42 +64,55 @@ func (s *Store) ListTodo(ctx context.Context) ([]domain.Todo, error) {
 			return nil, err
 		}
 
-		todos = append(todos, domain.Todo{
-			ID:        row.ID,
-			Title:     row.Title,
-			Done:      row.Done,
-			CreatedAt: row.CreatedAt,
-		})
+		todos = append(todos, row.ToDomain())
 	}
 
 	return todos, nil
 }
 
-func (s *Store) CreateTodo(ctx context.Context, todo *domain.Todo) (int, error) {
+func (s *Store) Create(ctx context.Context, title string) (*domain.Todo, error) {
 	templateParams := map[string]any{}
 
 	querystr, err := prepareQuery(s.queryTemplates[createTodoQuery], templateParams)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	queryParams := map[string]any{
-		"title": todo.Title,
+		"title": title,
 	}
 
-	var id int
-	// GetContext ✅ - Single row to add a new todo
-	err = s.db.GetContext(ctx, &id, querystr, queryParams)
+	// NamedQueryContext ✅ - Single row with RETURNING clause
+	result, err := s.db.NamedQueryContext(ctx, querystr, queryParams)
 	if err != nil {
-		return 0, err
+		return nil, err
+	}
+	defer result.Close()
+
+	var (
+		id        int64
+		createdAt time.Time
+	)
+
+	if result.Next() {
+		err = result.Scan(&id, &createdAt)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New("failed to retrieve inserted todo ID")
 	}
 
-	todo.ID = id
+	todo := &domain.Todo{
+		ID:        id,
+		Title:     title,
+		CreatedAt: createdAt,
+	}
 
-	return id, nil
+	return todo, nil
 }
 
-func (s *Store) GetTodo(ctx context.Context, id int) (*domain.Todo, error) {
+func (s *Store) Get(ctx context.Context, id int64) (*domain.Todo, error) {
 	templateParams := map[string]any{}
 
 	querystr, err := prepareQuery(s.queryTemplates[getTodoQuery], templateParams)
@@ -110,49 +124,62 @@ func (s *Store) GetTodo(ctx context.Context, id int) (*domain.Todo, error) {
 		"id": id,
 	}
 
-	var todo domain.Todo
-	//QueryRowxContext ✅ - Single row (GetTodo, GetUser, etc.)
-	err = s.db.QueryRowxContext(ctx, querystr, queryParams).StructScan(&todo)
+	var row RowDTO
+	//NamedQueryContext ✅ - Single row with named parameters (GetTodo, GetUser, etc.)
+	rows, err := s.db.NamedQueryContext(ctx, querystr, queryParams)
 	if err != nil {
 		return nil, err
 	}
 
-	return &todo, nil
+	// don't forget to close the rows
+	defer rows.Close()
+
+	// Scan the row into the todo struct, first call `Next()` and then `StructScan()` to get the data from the result
+	if rows.Next() {
+		err = rows.StructScan(&row)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New("todo not found")
+	}
+
+	return row.ToDomain(), nil
 }
 
-func (s *Store) UpdateTodo(ctx context.Context, todo domain.Todo) error {
+func (s *Store) Update(ctx context.Context, id int64, title string, done bool) (*domain.Todo, error) {
 	templateParams := map[string]any{}
 
 	querystr, err := prepareQuery(s.queryTemplates[updateTodoQuery], templateParams)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	queryParams := map[string]any{
-		"id":    todo.ID,
-		"title": todo.Title,
-		"done":  todo.Done,
+		"id":    id,
+		"title": title,
+		"done":  done,
 	}
 
 	result, err := s.db.NamedExecContext(ctx, querystr, queryParams)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Optional: Check if any rows were affected
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if rowsAffected == 0 {
-		return errors.New("todo not found")
+		return nil, errors.New("todo not found")
 	}
 
-	return nil
+	return s.Get(ctx, id)
 }
 
-func (s *Store) DeleteTodo(ctx context.Context, id int) error {
+func (s *Store) Delete(ctx context.Context, id int64) error {
 	templateParams := map[string]any{}
 
 	querystr, err := prepareQuery(s.queryTemplates[deleteTodoQuery], templateParams)

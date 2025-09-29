@@ -8,7 +8,7 @@ import (
 // Todo is a struct representing a single todo item.
 // It's like a Java class with fields, or a JS object.
 type Todo struct {
-	ID        int
+	ID        int64
 	Title     string
 	Done      bool
 	CreatedAt time.Time

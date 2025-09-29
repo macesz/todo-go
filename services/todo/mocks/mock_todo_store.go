@@ -39,22 +39,24 @@ func (_m *TodoStore) EXPECT() *TodoStore_Expecter {
 }
 
 // Create provides a mock function for the type TodoStore
-func (_mock *TodoStore) Create(ctx context.Context, title string) (domain.Todo, error) {
+func (_mock *TodoStore) Create(ctx context.Context, title string) (*domain.Todo, error) {
 	ret := _mock.Called(ctx, title)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Create")
 	}
 
-	var r0 domain.Todo
+	var r0 *domain.Todo
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (domain.Todo, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*domain.Todo, error)); ok {
 		return returnFunc(ctx, title)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) domain.Todo); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *domain.Todo); ok {
 		r0 = returnFunc(ctx, title)
 	} else {
-		r0 = ret.Get(0).(domain.Todo)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*domain.Todo)
+		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, title)
@@ -94,18 +96,18 @@ func (_c *TodoStore_Create_Call) Run(run func(ctx context.Context, title string)
 	return _c
 }
 
-func (_c *TodoStore_Create_Call) Return(todo domain.Todo, err error) *TodoStore_Create_Call {
+func (_c *TodoStore_Create_Call) Return(todo *domain.Todo, err error) *TodoStore_Create_Call {
 	_c.Call.Return(todo, err)
 	return _c
 }
 
-func (_c *TodoStore_Create_Call) RunAndReturn(run func(ctx context.Context, title string) (domain.Todo, error)) *TodoStore_Create_Call {
+func (_c *TodoStore_Create_Call) RunAndReturn(run func(ctx context.Context, title string) (*domain.Todo, error)) *TodoStore_Create_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Delete provides a mock function for the type TodoStore
-func (_mock *TodoStore) Delete(ctx context.Context, id int) error {
+func (_mock *TodoStore) Delete(ctx context.Context, id int64) error {
 	ret := _mock.Called(ctx, id)
 
 	if len(ret) == 0 {
@@ -113,7 +115,7 @@ func (_mock *TodoStore) Delete(ctx context.Context, id int) error {
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int) error); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64) error); ok {
 		r0 = returnFunc(ctx, id)
 	} else {
 		r0 = ret.Error(0)
@@ -128,20 +130,20 @@ type TodoStore_Delete_Call struct {
 
 // Delete is a helper method to define mock.On call
 //   - ctx context.Context
-//   - id int
+//   - id int64
 func (_e *TodoStore_Expecter) Delete(ctx interface{}, id interface{}) *TodoStore_Delete_Call {
 	return &TodoStore_Delete_Call{Call: _e.mock.On("Delete", ctx, id)}
 }
 
-func (_c *TodoStore_Delete_Call) Run(run func(ctx context.Context, id int)) *TodoStore_Delete_Call {
+func (_c *TodoStore_Delete_Call) Run(run func(ctx context.Context, id int64)) *TodoStore_Delete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 int
+		var arg1 int64
 		if args[1] != nil {
-			arg1 = args[1].(int)
+			arg1 = args[1].(int64)
 		}
 		run(
 			arg0,
@@ -156,30 +158,32 @@ func (_c *TodoStore_Delete_Call) Return(err error) *TodoStore_Delete_Call {
 	return _c
 }
 
-func (_c *TodoStore_Delete_Call) RunAndReturn(run func(ctx context.Context, id int) error) *TodoStore_Delete_Call {
+func (_c *TodoStore_Delete_Call) RunAndReturn(run func(ctx context.Context, id int64) error) *TodoStore_Delete_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Get provides a mock function for the type TodoStore
-func (_mock *TodoStore) Get(ctx context.Context, id int) (domain.Todo, error) {
+func (_mock *TodoStore) Get(ctx context.Context, id int64) (*domain.Todo, error) {
 	ret := _mock.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Get")
 	}
 
-	var r0 domain.Todo
+	var r0 *domain.Todo
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int) (domain.Todo, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64) (*domain.Todo, error)); ok {
 		return returnFunc(ctx, id)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int) domain.Todo); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64) *domain.Todo); ok {
 		r0 = returnFunc(ctx, id)
 	} else {
-		r0 = ret.Get(0).(domain.Todo)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*domain.Todo)
+		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int64) error); ok {
 		r1 = returnFunc(ctx, id)
 	} else {
 		r1 = ret.Error(1)
@@ -194,20 +198,20 @@ type TodoStore_Get_Call struct {
 
 // Get is a helper method to define mock.On call
 //   - ctx context.Context
-//   - id int
+//   - id int64
 func (_e *TodoStore_Expecter) Get(ctx interface{}, id interface{}) *TodoStore_Get_Call {
 	return &TodoStore_Get_Call{Call: _e.mock.On("Get", ctx, id)}
 }
 
-func (_c *TodoStore_Get_Call) Run(run func(ctx context.Context, id int)) *TodoStore_Get_Call {
+func (_c *TodoStore_Get_Call) Run(run func(ctx context.Context, id int64)) *TodoStore_Get_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 int
+		var arg1 int64
 		if args[1] != nil {
-			arg1 = args[1].(int)
+			arg1 = args[1].(int64)
 		}
 		run(
 			arg0,
@@ -217,34 +221,34 @@ func (_c *TodoStore_Get_Call) Run(run func(ctx context.Context, id int)) *TodoSt
 	return _c
 }
 
-func (_c *TodoStore_Get_Call) Return(todo domain.Todo, err error) *TodoStore_Get_Call {
+func (_c *TodoStore_Get_Call) Return(todo *domain.Todo, err error) *TodoStore_Get_Call {
 	_c.Call.Return(todo, err)
 	return _c
 }
 
-func (_c *TodoStore_Get_Call) RunAndReturn(run func(ctx context.Context, id int) (domain.Todo, error)) *TodoStore_Get_Call {
+func (_c *TodoStore_Get_Call) RunAndReturn(run func(ctx context.Context, id int64) (*domain.Todo, error)) *TodoStore_Get_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // List provides a mock function for the type TodoStore
-func (_mock *TodoStore) List(ctx context.Context) ([]domain.Todo, error) {
+func (_mock *TodoStore) List(ctx context.Context) ([]*domain.Todo, error) {
 	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for List")
 	}
 
-	var r0 []domain.Todo
+	var r0 []*domain.Todo
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) ([]domain.Todo, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) ([]*domain.Todo, error)); ok {
 		return returnFunc(ctx)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) []domain.Todo); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) []*domain.Todo); ok {
 		r0 = returnFunc(ctx)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]domain.Todo)
+			r0 = ret.Get(0).([]*domain.Todo)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
@@ -279,35 +283,37 @@ func (_c *TodoStore_List_Call) Run(run func(ctx context.Context)) *TodoStore_Lis
 	return _c
 }
 
-func (_c *TodoStore_List_Call) Return(todos []domain.Todo, err error) *TodoStore_List_Call {
+func (_c *TodoStore_List_Call) Return(todos []*domain.Todo, err error) *TodoStore_List_Call {
 	_c.Call.Return(todos, err)
 	return _c
 }
 
-func (_c *TodoStore_List_Call) RunAndReturn(run func(ctx context.Context) ([]domain.Todo, error)) *TodoStore_List_Call {
+func (_c *TodoStore_List_Call) RunAndReturn(run func(ctx context.Context) ([]*domain.Todo, error)) *TodoStore_List_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Update provides a mock function for the type TodoStore
-func (_mock *TodoStore) Update(ctx context.Context, id int, title string, done bool) (domain.Todo, error) {
+func (_mock *TodoStore) Update(ctx context.Context, id int64, title string, done bool) (*domain.Todo, error) {
 	ret := _mock.Called(ctx, id, title, done)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
 	}
 
-	var r0 domain.Todo
+	var r0 *domain.Todo
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, string, bool) (domain.Todo, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, bool) (*domain.Todo, error)); ok {
 		return returnFunc(ctx, id, title, done)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, string, bool) domain.Todo); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, bool) *domain.Todo); ok {
 		r0 = returnFunc(ctx, id, title, done)
 	} else {
-		r0 = ret.Get(0).(domain.Todo)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*domain.Todo)
+		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int, string, bool) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int64, string, bool) error); ok {
 		r1 = returnFunc(ctx, id, title, done)
 	} else {
 		r1 = ret.Error(1)
@@ -322,22 +328,22 @@ type TodoStore_Update_Call struct {
 
 // Update is a helper method to define mock.On call
 //   - ctx context.Context
-//   - id int
+//   - id int64
 //   - title string
 //   - done bool
 func (_e *TodoStore_Expecter) Update(ctx interface{}, id interface{}, title interface{}, done interface{}) *TodoStore_Update_Call {
 	return &TodoStore_Update_Call{Call: _e.mock.On("Update", ctx, id, title, done)}
 }
 
-func (_c *TodoStore_Update_Call) Run(run func(ctx context.Context, id int, title string, done bool)) *TodoStore_Update_Call {
+func (_c *TodoStore_Update_Call) Run(run func(ctx context.Context, id int64, title string, done bool)) *TodoStore_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 int
+		var arg1 int64
 		if args[1] != nil {
-			arg1 = args[1].(int)
+			arg1 = args[1].(int64)
 		}
 		var arg2 string
 		if args[2] != nil {
@@ -357,12 +363,12 @@ func (_c *TodoStore_Update_Call) Run(run func(ctx context.Context, id int, title
 	return _c
 }
 
-func (_c *TodoStore_Update_Call) Return(todo domain.Todo, err error) *TodoStore_Update_Call {
+func (_c *TodoStore_Update_Call) Return(todo *domain.Todo, err error) *TodoStore_Update_Call {
 	_c.Call.Return(todo, err)
 	return _c
 }
 
-func (_c *TodoStore_Update_Call) RunAndReturn(run func(ctx context.Context, id int, title string, done bool) (domain.Todo, error)) *TodoStore_Update_Call {
+func (_c *TodoStore_Update_Call) RunAndReturn(run func(ctx context.Context, id int64, title string, done bool) (*domain.Todo, error)) *TodoStore_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

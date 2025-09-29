@@ -1,3 +1,3 @@
-INSERT INTO todos (title, done)
+INSERT INTO todos (title)
 VALUES (:title)
-RETURNING id;
+RETURNING id, created_at;
