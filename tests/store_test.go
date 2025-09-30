@@ -173,6 +173,56 @@ func TestPgTodoStore(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "UpdateTodo",
+			exec: func(t *testing.T) {
+				var todoId int64
+				todoId = 1
+				todo, err := store.Get(ctx, todoId)
+				if err != nil {
+					t.Error(err)
+				}
+
+				todo.Title = "test1 updated"
+				todo.Done = true
+
+				todo, err = store.Update(ctx, todoId, todo.Title, todo.Done)
+				if err != nil {
+					t.Error(err)
+				}
+
+				todo, err = store.Get(ctx, 1)
+				if err != nil {
+					t.Error(err)
+				}
+
+				if todo.Title != "test1 updated" {
+					t.Errorf("expected title to be 'test1 updated', got %s", todo.Title)
+				}
+
+				if todo.Done != true {
+					t.Errorf("expected completed to be true, got %t", todo.Done)
+				}
+			},
+		},
+		{
+			name: "DeleteTodo",
+			exec: func(t *testing.T) {
+				err := store.Delete(ctx, 1)
+				if err != nil {
+					t.Error(err)
+				}
+
+				todo, err := store.Get(ctx, 1)
+				if err == nil {
+					t.Error(fmt.Errorf("expected error, got nil"))
+				}
+
+				if todo != nil {
+					t.Errorf("expected todo to be nil, got %v", todo)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
