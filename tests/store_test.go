@@ -15,6 +15,7 @@ import (
 	_ "github.com/golang-migrate/migrate/source/file"       // used by migrator
 	"github.com/jmoiron/sqlx"
 	"github.com/macesz/todo-go/dal/pgtodo"
+	"github.com/macesz/todo-go/domain"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -106,14 +107,14 @@ func migrateDb(dbAddr string) error {
 }
 
 func TestPgTodoStore(t *testing.T) {
-	ctx := t.Context()
+	// ctx := t.Context()
 
-	db, err := SetUpTestDB(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// db, err := SetUpTestDB(ctx)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
 
-	store := pgtodo.CreateStore(db)
+	// store := pgtodo.CreateStore(db)
 
 	tests := []struct {
 		name string
@@ -122,6 +123,12 @@ func TestPgTodoStore(t *testing.T) {
 		{
 			name: "create 3 todos",
 			exec: func(t *testing.T) {
+				store, db := setupTestStore(t)
+
+				defer db.Close()
+
+				ctx := t.Context()
+
 				for i := range int64(3) {
 					ct, err := store.Create(ctx, fmt.Sprintf("test%d", i+1))
 					if err != nil {
@@ -146,6 +153,14 @@ func TestPgTodoStore(t *testing.T) {
 		{
 			name: "ListTodo",
 			exec: func(t *testing.T) {
+				store, db := setupTestStore(t)
+				defer db.Close()
+
+				// Create sample data for this specific test
+				createSampleTodos(t, store, 3)
+
+				ctx := t.Context()
+
 				todos, err := store.List(ctx)
 				if err != nil {
 					t.Error(err)
@@ -159,6 +174,14 @@ func TestPgTodoStore(t *testing.T) {
 		{
 			name: "GetTodo",
 			exec: func(t *testing.T) {
+				store, db := setupTestStore(t)
+				defer db.Close()
+
+				// Create sample data for this specific test
+				createSampleTodos(t, store, 3)
+
+				ctx := t.Context()
+
 				todo, err := store.Get(ctx, 1)
 				if err != nil {
 					t.Error(err)
@@ -176,6 +199,14 @@ func TestPgTodoStore(t *testing.T) {
 		{
 			name: "UpdateTodo",
 			exec: func(t *testing.T) {
+				store, db := setupTestStore(t)
+				defer db.Close()
+
+				// Create sample data for this specific test
+				createSampleTodos(t, store, 3)
+
+				ctx := t.Context()
+
 				var todoId int64
 				todoId = 1
 				todo, err := store.Get(ctx, todoId)
@@ -208,6 +239,14 @@ func TestPgTodoStore(t *testing.T) {
 		{
 			name: "DeleteTodo",
 			exec: func(t *testing.T) {
+				store, db := setupTestStore(t)
+				defer db.Close()
+
+				// Create sample data for this specific test
+				createSampleTodos(t, store, 3)
+
+				ctx := t.Context()
+
 				err := store.Delete(ctx, 1)
 				if err != nil {
 					t.Error(err)
@@ -230,4 +269,32 @@ func TestPgTodoStore(t *testing.T) {
 			tt.exec(t)
 		})
 	}
+}
+
+func setupTestStore(t *testing.T) (*pgtodo.Store, *sqlx.DB) {
+	ctx := t.Context()
+
+	db, err := SetUpTestDB(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	store := pgtodo.CreateStore(db)
+	return store, db
+}
+
+func createSampleTodos(t *testing.T, store *pgtodo.Store, count int) []*domain.Todo {
+
+	ctx := t.Context()
+	var todos []*domain.Todo
+
+	for i := range int64(count) {
+		todo, err := store.Create(ctx, fmt.Sprintf("test%d", i+1))
+		if err != nil {
+			t.Error(err)
+		}
+		todos = append(todos, todo)
+	}
+
+	return todos
 }
