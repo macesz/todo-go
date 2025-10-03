@@ -1,4 +1,4 @@
-package web
+package todo
 
 import (
 	"encoding/json" // For JSON (like JSON.parse/stringify in JS)
@@ -13,19 +13,6 @@ import (
 	// String conversions (like parseInt in JS)
 	// String utils (like .split() in JS)
 )
-
-// TodoHandlers groups HTTP handler functions.
-// Like a Java controller class or JS route handler object.
-type TodoHandlers struct {
-	Service TodoService
-}
-
-// NewHandlers creates a new Handlers instance.
-func NewHandlers(service TodoService) *TodoHandlers {
-	return &TodoHandlers{
-		Service: service,
-	}
-}
 
 // NewHealthHandler returns a handler that reports basic health info.
 func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {

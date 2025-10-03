@@ -1,14 +1,18 @@
 package pgtodo
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/macesz/todo-go/pkg"
+)
 
 func TestTemplate(t *testing.T) {
-	queries, err := buildQueries("queries")
+	queries, err := pkg.BuildQueries(files, "queries")
 	if err != nil {
 		t.Error(err)
 	}
 
-	query, err := prepareQuery(queries["list_todo"], nil)
+	query, err := pkg.PrepareQuery(queries["list_todo"], nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -17,12 +21,12 @@ func TestTemplate(t *testing.T) {
 }
 
 func TestTemplateCreate(t *testing.T) {
-	queries, err := buildQueries("queries")
+	queries, err := pkg.BuildQueries(files, "queries")
 	if err != nil {
 		t.Error(err)
 	}
 
-	query, err := prepareQuery(queries["create_todo"], nil)
+	query, err := pkg.PrepareQuery(queries["create_todo"], nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -31,12 +35,12 @@ func TestTemplateCreate(t *testing.T) {
 }
 
 func TestTemplateGetTodo(t *testing.T) {
-	queries, err := buildQueries("queries")
+	queries, err := pkg.BuildQueries(files, "queries")
 	if err != nil {
 		t.Error(err)
 	}
 
-	query, err := prepareQuery(queries["get_todo"], nil)
+	query, err := pkg.PrepareQuery(queries["get_todo"], nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -45,12 +49,12 @@ func TestTemplateGetTodo(t *testing.T) {
 }
 
 func TestTemplateDeleteTodo(t *testing.T) {
-	queries, err := buildQueries("queries")
+	queries, err := pkg.BuildQueries(files, "queries")
 	if err != nil {
 		t.Error(err)
 	}
 
-	query, err := prepareQuery(queries["delete_todo"], nil)
+	query, err := pkg.PrepareQuery(queries["delete_todo"], nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -59,12 +63,12 @@ func TestTemplateDeleteTodo(t *testing.T) {
 }
 
 func TestTemplateUpdateTodo(t *testing.T) {
-	queries, err := buildQueries("queries")
+	queries, err := pkg.BuildQueries(files, "queries")
 	if err != nil {
 		t.Error(err)
 	}
 
-	query, err := prepareQuery(queries["update_todo"], nil)
+	query, err := pkg.PrepareQuery(queries["update_todo"], nil)
 	if err != nil {
 		t.Error(err)
 	}

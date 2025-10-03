@@ -6,14 +6,14 @@ import (
 	"github.com/macesz/todo-go/domain"
 )
 
-type RowDTO struct {
+type rowDTO struct {
 	ID        int64     `db:"id"`
 	Title     string    `db:"title"`
 	Done      bool      `db:"done"`
 	CreatedAt time.Time `db:"created_at"`
 }
 
-func (r RowDTO) ToDomain() *domain.Todo {
+func (r rowDTO) ToDomain() *domain.Todo {
 	return &domain.Todo{
 		ID:        r.ID,
 		Title:     r.Title,

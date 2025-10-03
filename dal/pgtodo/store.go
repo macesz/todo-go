@@ -8,6 +8,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/macesz/todo-go/domain"
+	"github.com/macesz/todo-go/pkg"
 )
 
 // Here is the Store struct where we store the queries and the database connection.
@@ -18,7 +19,7 @@ type Store struct {
 
 // CreateStore creates a new Store instance.
 func CreateStore(db *sqlx.DB) *Store {
-	queryTemplates, err := buildQueries("queries")
+	queryTemplates, err := pkg.BuildQueries(files, "queries")
 	if err != nil {
 		panic(err)
 	}
@@ -38,7 +39,7 @@ func (s *Store) List(ctx context.Context) ([]*domain.Todo, error) {
 	templateParams := map[string]any{}
 
 	// Prepare the query string, by using the template.
-	querystr, err := prepareQuery(s.queryTemplates[listTodoQuery], templateParams)
+	querystr, err := pkg.PrepareQuery(s.queryTemplates[listTodoQuery], templateParams)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +57,7 @@ func (s *Store) List(ctx context.Context) ([]*domain.Todo, error) {
 
 	defer rows.Close() // Important: Always close rows!
 
-	var row RowDTO
+	var row rowDTO
 
 	for rows.Next() {
 		err := rows.StructScan(&row) // Fixed: Added & (pointer) and error handling
@@ -73,7 +74,7 @@ func (s *Store) List(ctx context.Context) ([]*domain.Todo, error) {
 func (s *Store) Create(ctx context.Context, title string) (*domain.Todo, error) {
 	templateParams := map[string]any{}
 
-	querystr, err := prepareQuery(s.queryTemplates[createTodoQuery], templateParams)
+	querystr, err := pkg.PrepareQuery(s.queryTemplates[createTodoQuery], templateParams)
 	if err != nil {
 		return nil, err
 	}
@@ -94,6 +95,7 @@ func (s *Store) Create(ctx context.Context, title string) (*domain.Todo, error) 
 		createdAt time.Time
 	)
 
+	// Scan the result into the variables
 	if result.Next() {
 		err = result.Scan(&id, &createdAt)
 		if err != nil {
@@ -103,6 +105,7 @@ func (s *Store) Create(ctx context.Context, title string) (*domain.Todo, error) 
 		return nil, errors.New("failed to retrieve inserted todo ID")
 	}
 
+	// Create a new Todo instance with the retrieved ID and other fields
 	todo := &domain.Todo{
 		ID:        id,
 		Title:     title,
@@ -115,7 +118,7 @@ func (s *Store) Create(ctx context.Context, title string) (*domain.Todo, error) 
 func (s *Store) Get(ctx context.Context, id int64) (*domain.Todo, error) {
 	templateParams := map[string]any{}
 
-	querystr, err := prepareQuery(s.queryTemplates[getTodoQuery], templateParams)
+	querystr, err := pkg.PrepareQuery(s.queryTemplates[getTodoQuery], templateParams)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +127,7 @@ func (s *Store) Get(ctx context.Context, id int64) (*domain.Todo, error) {
 		"id": id,
 	}
 
-	var row RowDTO
+	var row rowDTO
 	//NamedQueryContext ✅ - Single row with named parameters (GetTodo, GetUser, etc.)
 	rows, err := s.db.NamedQueryContext(ctx, querystr, queryParams)
 	if err != nil {
@@ -150,7 +153,7 @@ func (s *Store) Get(ctx context.Context, id int64) (*domain.Todo, error) {
 func (s *Store) Update(ctx context.Context, id int64, title string, done bool) (*domain.Todo, error) {
 	templateParams := map[string]any{}
 
-	querystr, err := prepareQuery(s.queryTemplates[updateTodoQuery], templateParams)
+	querystr, err := pkg.PrepareQuery(s.queryTemplates[updateTodoQuery], templateParams)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +185,7 @@ func (s *Store) Update(ctx context.Context, id int64, title string, done bool) (
 func (s *Store) Delete(ctx context.Context, id int64) error {
 	templateParams := map[string]any{}
 
-	querystr, err := prepareQuery(s.queryTemplates[deleteTodoQuery], templateParams)
+	querystr, err := pkg.PrepareQuery(s.queryTemplates[deleteTodoQuery], templateParams)
 	if err != nil {
 		return err
 	}

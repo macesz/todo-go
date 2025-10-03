@@ -44,5 +44,5 @@ func main() {
 
 	service := todo.NewTodoService(store) // Service with business logic
 
-	web.StartServer(service) // Start the web server
+	web.StartServer(service, nil) // Start the web server
 }
