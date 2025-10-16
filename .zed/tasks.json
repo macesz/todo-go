@@ -46,5 +46,40 @@
     "shell": "system"
     // Represents the tags for inline runnable indicators, or spawning multiple tasks at once.
     // "tags": []
+  },
+  {
+    "label": "Update Mockery mocks",
+    "command": "mockery",
+    "cwd": "$ZED_DIRNAME",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false
+  },
+  {
+    "label": "Run tests",
+    "command": "go test -v ./...",
+    "cwd": "$ZED_DIRNAME",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false
+  },
+  {
+    "label": "Run tests with coverage",
+    "command": "go test -coverprofile=coverage.out ./...",
+    "cwd": "$ZED_DIRNAME",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false
+  },
+  {
+    "label": "Generate code",
+    "command": "go generate ./...",
+    "cwd": "$ZED_DIRNAME",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false
+  },
+  {
+    "label": "Run golangci-lint run --fix",
+    "command": "golangci-lint run --fix",
+    "cwd": "$ZED_DIRNAME",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false
   }
 ]

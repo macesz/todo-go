@@ -2,7 +2,7 @@ package todo
 
 import (
 	"encoding/json" // For JSON (like JSON.parse/stringify in JS)
-	"io"
+	"errors"
 	"net/http" // Standard HTTP library (like fetch in JS or HttpServlet in Java)
 	"strconv"
 	"time"
@@ -13,16 +13,6 @@ import (
 	// String conversions (like parseInt in JS)
 	// String utils (like .split() in JS)
 )
-
-// NewHealthHandler returns a handler that reports basic health info.
-func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	// A very simple health check.
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	// In the future we could report back on the status of our DB, or our cache
-	// (e.g. Redis) by performing a simple PING, and include them in the response.
-	io.WriteString(w, `{"alive": true}`)
-}
 
 // ListTodos handles GET /todos requests.
 func (h *TodoHandlers) ListTodos(w http.ResponseWriter, r *http.Request) {
@@ -108,13 +98,13 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	idr := chi.URLParam(r, "id") // Get the "id" URL parameter
 
 	if idr == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "id is required"})
+		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
 		return
 	}
 
 	id, err := strconv.ParseInt(idr, 10, 64) // Convert id string to int
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "id must be an integer"})
+		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
 		return
 	}
 
@@ -123,22 +113,30 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	// Decode the JSON body into the todo struct
 	// If decoding fails, return 400 Bad Request
 	if err := json.NewDecoder(r.Body).Decode(&todoDTO); err != nil {
-		writeJSON(w, http.StatusBadRequest, err.Error())
+		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()}) // Using struct for consistency
 		return
 	}
 
-	// Validate the UpdateTodoDTO struct
-	if validate.New().Struct(todoDTO) != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "title is required and must be between 1 and 255 characters; done is required"})
-		return
+	defer r.Body.Close() // Clean up - like closing a file; prevents leaks
 
+	// Validate using tags in UpdateTodoDTO (like Joi.validate in JS)
+	if err := validate.New().Struct(todoDTO); err != nil {
+		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()}) // Dynamic message, e.g., "Title is required"
+		return
 	}
 
-	// Update the todo using the service
-	// If update fails, return 400 Bad Request
+	// Call service to update (passes context for timeouts/cancellation)
 	updated, err := h.Service.UpdateTodo(r.Context(), id, todoDTO.Title, todoDTO.Done)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, err.Error())
+		if errors.Is(err, domain.ErrNotFound) { // Check custom error )
+			writeJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
+			return
+		} else if errors.Is(err, domain.ErrInvalidTitle) { // Optional: If service returns this
+			writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
+			return
+		}
+		// TODO: Add logging here, e.g., log.Printf("Internal error updating todo %d: %v", id, err)
+		writeJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"}) // Generic for security
 		return
 	}
 

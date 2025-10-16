@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -13,7 +14,9 @@ import (
 	chi "github.com/go-chi/chi/v5"
 	"github.com/macesz/todo-go/delivery/web/mocks"
 	"github.com/macesz/todo-go/domain"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // MockTodoService is a mock implementation of the TodoService interface for testing
@@ -23,37 +26,6 @@ type MockTodoService struct {
 	nextID int
 }
 
-func TestHealthCheckHandler(t *testing.T) {
-	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
-	// pass 'nil' as the third parameter.
-	req, err := http.NewRequest("GET", "/health", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(HealthCheckHandler)
-
-	// Our handlers satisfy http.Handler, so we can call their ServeHTTP method
-	// directly and pass in our Request and ResponseRecorder.
-
-	handler.ServeHTTP(rr, req)
-
-	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	// Check the response body is what we expect.
-
-	expected := `{"alive": true}`
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
-}
-
 // TestListTodos tests the ListTodos handler with various scenarios
 func TestListTodos(t *testing.T) {
 	fixedTime := time.Date(2024, time.January, 1, 12, 0, 0, 0, time.UTC)
@@ -61,21 +33,21 @@ func TestListTodos(t *testing.T) {
 	// Define test cases for different scenarios
 	tests := []struct {
 		name           string
-		mockReturn     []domain.Todo
+		mockReturn     []*domain.Todo
 		mockError      error
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
 			name:           "No todos",
-			mockReturn:     []domain.Todo{},
+			mockReturn:     []*domain.Todo{},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   "[]\n",
+			expectedBody:   "[]",
 		},
 		{
 			name: "One todo",
-			mockReturn: []domain.Todo{
+			mockReturn: []*domain.Todo{
 				{ID: 1, Title: "Test Todo 1", Done: false, CreatedAt: fixedTime},
 			},
 			mockError:      nil,
@@ -100,26 +72,16 @@ func TestListTodos(t *testing.T) {
 			mockService.On("ListTodos", mock.Anything).Return(tt.mockReturn, tt.mockError)
 
 			handlers := &TodoHandlers{Service: mockService}
-			handler := http.HandlerFunc(handlers.ListTodos)
 
 			rr := httptest.NewRecorder()
 
-			req, err := http.NewRequest("GET", "/todos", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			req, err := http.NewRequest(http.MethodGet, "/todos", nil)
+			require.NoError(t, err)
 
-			handler.ServeHTTP(rr, req)
+			handlers.ListTodos(rr, req)
 
-			if status := rr.Code; status != tt.expectedStatus {
-				t.Errorf("handler returned wrong status code: got %v want %v",
-					status, tt.expectedStatus)
-			}
-
-			if rr.Body.String() != tt.expectedBody {
-				t.Errorf("handler returned unexpected body: got %v want %v",
-					rr.Body.String(), tt.expectedBody)
-			}
+			require.Equal(t, tt.expectedStatus, rr.Code)
+			assert.JSONEq(t, tt.expectedBody, rr.Body.String())
 
 			mockService.AssertExpectations(t)
 			rr.Body.Reset() // Reset the response recorder for the next iteration
@@ -133,16 +95,20 @@ func TestCreateTodo(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		inputBody      string
-		mockReturn     domain.Todo
+		inputTitle     string // For mock matching
+		inputBody      string // Request body JSON
+		shouldCallMock bool   // Whether to expect service call
+		mockReturn     *domain.Todo
 		mockError      error
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
 			name:           "Valid input",
-			inputBody:      `{"Title": "New Todo"}`,
-			mockReturn:     domain.Todo{ID: 1, Title: "New Todo", Done: false, CreatedAt: fixedTime},
+			inputTitle:     "New Todo",
+			shouldCallMock: true,
+			inputBody:      `{"title": "New Todo"}`,
+			mockReturn:     &domain.Todo{ID: 1, Title: "New Todo", Done: false, CreatedAt: fixedTime},
 			mockError:      nil,
 			expectedStatus: http.StatusCreated,
 			expectedBody:   `{"id":1,"title":"New Todo","done":false,"createdAt":"2024-01-01T12:00:00Z"}`,
@@ -150,55 +116,66 @@ func TestCreateTodo(t *testing.T) {
 		{
 			name:           "Invalid JSON",
 			inputBody:      `{"Title": "New Todo"`, // Malformed JSON
-			mockReturn:     domain.Todo{},
+			shouldCallMock: false,
+			mockReturn:     nil,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `"unexpected EOF"`,
+			expectedBody:   `"unexpected EOF"`, // Matches handler: writeJSON with err.Error() as string
+		},
+		{
+			name:           "Missing title",
+			inputBody:      `{"title":""}`,
+			shouldCallMock: false, // Handler validates before service call
+			mockReturn:     nil,
+			mockError:      nil,
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"error":"title is required and must be between 1 and 255 characters"}`, // Matches handler
 		},
 		{
 			name:           "Service error",
-			inputBody:      `{"Title": "New Todo"}`,
-			mockReturn:     domain.Todo{},
+			inputTitle:     "New Todo",
+			inputBody:      `{"title":"New Todo"}`,
+			shouldCallMock: true,
+			mockReturn:     nil,
 			mockError:      errors.New("error creating todo"),
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `"error creating todo"`,
-		},
+			expectedStatus: http.StatusBadRequest, // Matches handler
+			expectedBody:   `"error creating todo"`},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockService := mocks.NewTodoService(t)
 
-			if tt.mockError != nil || tt.mockReturn.ID != 0 {
-				mockService.On("CreateTodo", mock.Anything, "New Todo").Return(tt.mockReturn, tt.mockError)
+			if tt.shouldCallMock {
+				// Flexible title matching (handles trimming)
+				mockService.On("CreateTodo", mock.Anything, mock.MatchedBy(func(title string) bool {
+					return strings.TrimSpace(title) == tt.inputTitle
+				})).
+					Return(tt.mockReturn, tt.mockError).
+					Once()
 			}
 
 			handlers := &TodoHandlers{Service: mockService}
-			handler := http.HandlerFunc(handlers.CreateTodo)
 
 			rr := httptest.NewRecorder()
 
 			rbody := strings.NewReader(tt.inputBody)
+			req, err := http.NewRequest(http.MethodPost, "/todos", rbody)
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
 
-			req, err := http.NewRequest("POST", "/todos", rbody)
-			if err != nil {
-				t.Fatal(err)
-			}
+			handlers.CreateTodo(rr, req)
 
-			handler.ServeHTTP(rr, req)
+			require.Equal(t, tt.expectedStatus, rr.Code)
 
-			if status := rr.Code; status != tt.expectedStatus {
-				t.Errorf("handler returned wrong status code: got %v want %v",
-					status, tt.expectedStatus)
-			}
-
-			if strings.TrimSpace(rr.Body.String()) != tt.expectedBody {
-				t.Errorf("handler returned unexpected body: got %v want %v",
-					rr.Body.String(), tt.expectedBody)
+			// Conditional assertion: Use Equal for empty (non-JSON) bodies; JSONEq otherwise
+			if tt.expectedBody == "" {
+				assert.Equal(t, tt.expectedBody, rr.Body.String())
+			} else {
+				assert.JSONEq(t, tt.expectedBody, rr.Body.String())
 			}
 
 			mockService.AssertExpectations(t)
-			rr.Body.Reset() // Reset the response recorder for the next iteration
 		})
 	}
 }
@@ -209,40 +186,45 @@ func TestGetTodo(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		url            string
-		mockReturn     domain.Todo
+		urlParam       string
+		shouldCallMock bool
+		mockReturn     *domain.Todo
 		mockError      error
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
 			name:           "Valid ID",
-			url:            "/todos/1",
-			mockReturn:     domain.Todo{ID: 1, Title: "Test Todo", Done: false, CreatedAt: fixedTime},
+			urlParam:       "1",
+			shouldCallMock: true,
+			mockReturn:     &domain.Todo{ID: 1, Title: "Test Todo", Done: false, CreatedAt: fixedTime},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{"id":1,"title":"Test Todo","done":false,"createdAt":"2024-01-01T12:00:00Z"}`,
 		},
 		{
 			name:           "Non-integer ID",
-			url:            "/todos/abc",
-			mockReturn:     domain.Todo{},
+			urlParam:       "abc",
+			shouldCallMock: false,
+			mockReturn:     nil,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"id must be an integer"}`,
 		},
 		{
 			name:           "Missing ID",
-			url:            "/todos/",
-			mockReturn:     domain.Todo{},
+			urlParam:       "",
+			shouldCallMock: false,
+			mockReturn:     nil,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"id is required"}`,
 		},
 		{
 			name:           "Todo not found",
-			url:            "/todos/999",
-			mockReturn:     domain.Todo{},
+			urlParam:       "999",
+			shouldCallMock: true,
+			mockReturn:     nil,
 			mockError:      errors.New("not found"),
 			expectedStatus: http.StatusNotFound,
 			expectedBody:   `{"error":"not found"}`,
@@ -253,36 +235,37 @@ func TestGetTodo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockService := mocks.NewTodoService(t)
 
-			if tt.mockError != nil || tt.mockReturn.ID != 0 {
-				mockService.On("GetTodo", mock.Anything, mock.AnythingOfType("int")).Return(tt.mockReturn, tt.mockError)
+			if tt.shouldCallMock {
+				expectedID, err := strconv.ParseInt(tt.urlParam, 10, 64)
+				if err != nil {
+					t.Fatalf("invalid test setup: urlParam %q is not a valid int64: %v", tt.urlParam, err)
+				}
+				mockService.On("GetTodo", mock.Anything, expectedID).
+					Return(tt.mockReturn, tt.mockError).
+					Once()
 			}
 
 			handler := &TodoHandlers{Service: mockService}
-			// handler := http.HandlerFunc(handlers.GetTodo)
 
 			rr := httptest.NewRecorder()
 
-			req := httptest.NewRequest("GET", "/todos/"+tt.url, nil)
+			reqURL := "/todos/" + tt.urlParam
+			if tt.urlParam == "" {
+				reqURL = "/todos/"
+			}
 
-			// Use chi to set URL params, (rctx is for routing context), so we can simulate URL parameters
+			req, err := http.NewRequest(http.MethodGet, reqURL, nil)
+			require.NoError(t, err)
+
+			// Manual chi context injection
 			rctx := chi.NewRouteContext()
-			// Extract the ID from the URL path and set it as a URL parameter
-			rctx.URLParams.Add("id", strings.TrimPrefix(tt.url, "/todos/"))
-			// Add the routing context to the request's context
+			rctx.URLParams.Add("id", tt.urlParam)
 			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 			handler.GetTodo(rr, req)
-			// handler.ServeHTTP(rr, req)
 
-			if status := rr.Code; status != tt.expectedStatus {
-				t.Errorf("handler returned wrong status code: got %v want %v",
-					status, tt.expectedStatus)
-			}
-
-			if strings.TrimSpace(rr.Body.String()) != tt.expectedBody {
-				t.Errorf("handler returned unexpected body: got %v want %v",
-					rr.Body.String(), tt.expectedBody)
-			}
+			require.Equal(t, tt.expectedStatus, rr.Code)
+			assert.JSONEq(t, tt.expectedBody, rr.Body.String())
 
 			mockService.AssertExpectations(t)
 			rr.Body.Reset() // Reset the response recorder for the next iteration
@@ -298,28 +281,24 @@ func TestUpdateTodo(t *testing.T) {
 	tests := []struct {
 		name           string
 		urlParam       string
-		inputBody      string
-		mockID         int    // Expected ID for mock
-		mockTitle      string // Expected title for mock
-		mockDone       bool   // Expected done for mock
-		shouldCallMock bool   // Whether to expect service call
-		mockReturn     domain.Todo
+		inputTitle     string // For mock matching
+		inputDone      bool   // For mock matching
+		inputBody      string // Request body JSON
+		shouldCallMock bool
+		mockReturn     *domain.Todo
 		mockError      error
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
-			name:      "Valid input",
-			urlParam:  "1",
-			inputBody: `{"title": "Updated Todo", "done": true}`,
-			mockID:    1,
-			mockTitle: "Updated Todo",
-			mockDone:  true,
-			mockReturn: domain.Todo{
-				ID: 1, Title: "Updated Todo", Done: true, CreatedAt: fixedTime,
-			},
-			mockError:      nil,
+			name:           "Valid input",
+			urlParam:       "1",
+			inputTitle:     "Updated Todo",
+			inputDone:      true,
+			inputBody:      `{"title":"Updated Todo","done":true}`,
 			shouldCallMock: true,
+			mockReturn:     &domain.Todo{ID: 1, Title: "Updated Todo", Done: true, CreatedAt: fixedTime},
+			mockError:      nil,
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{"id":1,"title":"Updated Todo","done":true,"createdAt":"2024-01-01T12:00:00Z"}`,
 		},
@@ -328,14 +307,17 @@ func TestUpdateTodo(t *testing.T) {
 			urlParam:       "1",
 			inputBody:      `{"title": "Updated Todo", "done": true`, // Missing closing brace
 			shouldCallMock: false,
+			mockReturn:     nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `"unexpected EOF"`,
+			expectedBody:   `{"error":"unexpected EOF"}`, // Matches actual json.Decode error; change to custom if you update handler
 		},
 		{
 			name:           "Non-integer ID",
 			urlParam:       "abc",
 			inputBody:      `{"title": "Updated Todo", "done": true}`,
 			shouldCallMock: false,
+			mockReturn:     nil,
+			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"id must be an integer"}`,
 		},
@@ -344,6 +326,8 @@ func TestUpdateTodo(t *testing.T) {
 			urlParam:       "",
 			inputBody:      `{"title": "Updated Todo", "done": true}`,
 			shouldCallMock: false,
+			mockReturn:     nil,
+			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"id is required"}`,
 		},
@@ -352,8 +336,44 @@ func TestUpdateTodo(t *testing.T) {
 			urlParam:       "1",
 			inputBody:      `{"title": "", "done": true}`, // Should fail validation
 			shouldCallMock: false,
+			mockReturn:     nil,
+			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"error":"title is required and must be between 1 and 255 characters; done is required"}`,
+			expectedBody:   `{"error":"Key: 'UpdateTodoDTO.Title' Error:Field validation for 'Title' failed on the 'required' tag"}`,
+		},
+		{
+			name:           "Invalid data (title too long)", // New case to test max length
+			urlParam:       "1",
+			inputBody:      `{"title": "` + strings.Repeat("a", 256) + `", "done": true}`, // 256 chars > 255
+			shouldCallMock: false,
+			mockReturn:     nil,
+			mockError:      nil,
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"error":"Key: 'UpdateTodoDTO.Title' Error:Field validation for 'Title' failed on the 'max' tag"}`,
+		},
+		{
+			name:           "Service error (not found)",
+			urlParam:       "1",
+			inputTitle:     "Updated Todo",
+			inputDone:      true,
+			inputBody:      `{"title":"Updated Todo","done":true}`,
+			shouldCallMock: true,
+			mockReturn:     nil,
+			mockError:      domain.ErrNotFound, // Use custom error to match errors.Is
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   `{"error":"todo not found"}`, // Matches domain.ErrNotFound.Error()
+		},
+		{
+			name:           "Service error (internal)",
+			urlParam:       "1",
+			inputTitle:     "Updated Todo",
+			inputDone:      true,
+			inputBody:      `{"title":"Updated Todo","done":true}`,
+			shouldCallMock: true,
+			mockReturn:     nil,
+			mockError:      errors.New("database failure"), // Not a custom error, so falls to 500
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"error":"internal server error"}`,
 		},
 	}
 
@@ -361,42 +381,46 @@ func TestUpdateTodo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockService := mocks.NewTodoService(t)
 
-			// Only set up mock expectations for cases that should call the service
 			if tt.shouldCallMock {
-				mockService.On("UpdateTodo", mock.Anything, tt.mockID, tt.mockTitle, tt.mockDone).
-					Return(tt.mockReturn, tt.mockError)
+				expectedID, err := strconv.ParseInt(tt.urlParam, 10, 64)
+				if err != nil {
+					t.Fatalf("invalid test setup: urlParam %q is not a valid int64: %v", tt.urlParam, err)
+				}
+				mockService.On("UpdateTodo", mock.Anything, expectedID, mock.MatchedBy(func(title string) bool {
+					return strings.TrimSpace(title) == tt.inputTitle
+				}), tt.inputDone).
+					Return(tt.mockReturn, tt.mockError).
+					Once()
 			}
 
 			handlers := &TodoHandlers{Service: mockService}
 
 			rr := httptest.NewRecorder()
-			rbody := strings.NewReader(tt.inputBody)
 
-			// URL construction
-			req, err := http.NewRequest("PUT", "/todos/"+tt.urlParam, rbody)
-			if err != nil {
-				t.Fatal(err)
+			reqURL := "/todos/" + tt.urlParam
+			if tt.urlParam == "" {
+				reqURL = "/todos/"
 			}
 
-			// Set Content-Type header (important for JSON parsing)
+			rbody := strings.NewReader(tt.inputBody)
+			req, err := http.NewRequest(http.MethodPut, reqURL, rbody)
+			require.NoError(t, err)
 			req.Header.Set("Content-Type", "application/json")
 
-			// Use chi to set URL params
+			// Manual chi context injection
 			rctx := chi.NewRouteContext()
 			rctx.URLParams.Add("id", tt.urlParam)
 			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 			handlers.UpdateTodo(rr, req)
 
-			if status := rr.Code; status != tt.expectedStatus {
-				t.Errorf("handler returned wrong status code: got %v want %v",
-					status, tt.expectedStatus)
-			}
+			require.Equal(t, tt.expectedStatus, rr.Code)
 
-			gotBody := strings.TrimSpace(rr.Body.String())
-			if gotBody != tt.expectedBody {
-				t.Errorf("handler returned unexpected body:\ngot:  %q\nwant: %q",
-					gotBody, tt.expectedBody)
+			// Conditional assertion: Use Equal for empty/non-JSON bodies; JSONEq otherwise
+			if tt.expectedBody == "" {
+				assert.Equal(t, tt.expectedBody, strings.TrimSpace(rr.Body.String()))
+			} else {
+				assert.JSONEq(t, tt.expectedBody, rr.Body.String())
 			}
 
 			mockService.AssertExpectations(t)
@@ -410,7 +434,6 @@ func TestDeleteTodo(t *testing.T) {
 	tests := []struct {
 		name           string
 		urlParam       string
-		mockID         int  // Expected ID for mock
 		shouldCallMock bool // Whether to expect service call
 		mockError      error
 		expectedStatus int
@@ -419,7 +442,6 @@ func TestDeleteTodo(t *testing.T) {
 		{
 			name:           "Valid ID",
 			urlParam:       "1",
-			mockID:         1,
 			shouldCallMock: true,
 			mockError:      nil,
 			expectedStatus: http.StatusNoContent,
@@ -442,7 +464,6 @@ func TestDeleteTodo(t *testing.T) {
 		{
 			name:           "Todo not found",
 			urlParam:       "999",
-			mockID:         999,
 			shouldCallMock: true,
 			mockError:      errors.New("not found"),
 			expectedStatus: http.StatusNotFound,
@@ -456,19 +477,23 @@ func TestDeleteTodo(t *testing.T) {
 
 			// Only set up mock expectations for cases that should call the service
 			if tt.shouldCallMock {
-				mockService.On("DeleteTodo", mock.Anything, tt.mockID).
-					Return(tt.mockError)
+				expectedID, err := strconv.ParseInt(tt.urlParam, 10, 64)
+				if err != nil {
+					t.Fatalf("invalid test setup: urlParam %q is not a valid int64: %v", tt.urlParam, err)
+				}
+				mockService.On("DeleteTodo", mock.Anything, expectedID).
+					Return(tt.mockError).
+					Once()
 			}
 
 			handlers := &TodoHandlers{Service: mockService}
 
 			rr := httptest.NewRecorder()
+			reqURL := "/todos/" + tt.urlParam
 
 			// URL construction
-			req, err := http.NewRequest("DELETE", "/todos/"+tt.urlParam, nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			req, err := http.NewRequest(http.MethodDelete, reqURL, nil)
+			require.NoError(t, err)
 
 			// Use chi to set URL params
 			rctx := chi.NewRouteContext()
@@ -477,18 +502,16 @@ func TestDeleteTodo(t *testing.T) {
 
 			handlers.DeleteTodo(rr, req)
 
-			if status := rr.Code; status != tt.expectedStatus {
-				t.Errorf("handler returned wrong status code: got %v want %v",
-					status, tt.expectedStatus)
-			}
+			require.Equal(t, tt.expectedStatus, rr.Code)
 
-			gotBody := strings.TrimSpace(rr.Body.String())
-			if gotBody != tt.expectedBody {
-				t.Errorf("handler returned unexpected body:\ngot:  %q\nwant: %q",
-					gotBody, tt.expectedBody)
+			if tt.expectedBody == "" {
+				assert.Equal(t, tt.expectedBody, rr.Body.String())
+			} else {
+				assert.JSONEq(t, tt.expectedBody, rr.Body.String())
 			}
 
 			mockService.AssertExpectations(t)
+			rr.Body.Reset()
 		})
 	}
 }

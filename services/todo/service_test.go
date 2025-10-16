@@ -183,9 +183,8 @@ func TestCreateTodo(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tt := tc
 
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			s := &TodoService{
@@ -194,7 +193,7 @@ func TestCreateTodo(t *testing.T) {
 
 			tc.initMocks(t, &tc.args, s)
 
-			got, err := s.CreateTodo(tt.args.ctx, tc.args.title)
+			got, err := s.CreateTodo(tc.args.ctx, tc.args.title)
 
 			require.Equal(t, tc.want, got)
 			require.Equal(t, tc.wantErr, err != nil)

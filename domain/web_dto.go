@@ -23,3 +23,15 @@ type UpdateTodoDTO struct {
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
+
+type UserResponseDTO struct {
+	ID    int64  `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+type CreateUserDTO struct {
+	Name     string `json:"name" validate:"required,min=5,max=255"`
+	Email    string `json:"email" validate:"required,min=5,max=255"`
+	Password string `json:"password" validate:"required,min=5,max=255"`
+}
