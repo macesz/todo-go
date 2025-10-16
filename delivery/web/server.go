@@ -1,6 +1,7 @@
 package web
 
 import (
+	"io"
 	"log"
 	"net/http"
 
@@ -10,6 +11,15 @@ import (
 	"github.com/macesz/todo-go/delivery/web/todo"
 	"github.com/macesz/todo-go/delivery/web/user"
 )
+
+func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	// A very simple health check.
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	// In the future we could report back on the status of our DB, or our cache
+	// (e.g. Redis) by performing a simple PING, and include them in the response.
+	io.WriteString(w, `{"alive": true}`)
+}
 
 // StartServer initializes the router, sets up routes, and starts the HTTP server.
 // It takes a TodoService to handle business logic.

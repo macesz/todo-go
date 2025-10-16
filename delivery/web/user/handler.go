@@ -1,6 +1,8 @@
 package user
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // CreateUser creates a new HTTP handler for creating a new user.
 func (h *UserHandlers) CreateUser(w http.ResponseWriter, r *http.Request) {
