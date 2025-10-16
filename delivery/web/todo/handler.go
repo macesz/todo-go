@@ -12,6 +12,7 @@ import (
 	chi "github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	validate "github.com/go-playground/validator/v10" // For struct validation (like Joi in JS or Hibernate Validator in Java)
+	"github.com/macesz/todo-go/delivery/web/utils"
 	"github.com/macesz/todo-go/domain"
 	// String conversions (like parseInt in JS)
 	// String utils (like .split() in JS)
@@ -21,11 +22,11 @@ import (
 func (h *TodoHandlers) ListTodos(w http.ResponseWriter, r *http.Request) {
 	todos, err := h.Service.ListTodos(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})
+		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, todos)
+	utils.WriteJSON(w, http.StatusOK, todos)
 }
 
 // CreateTodo handles POST /todos requests.
@@ -38,9 +39,8 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	// json.NewDecoder is like JSON.parse in JS
 	// r.Body is the request body (like req.body in Express)
 	// &todo is the address of the todo variable (like passing by reference in Java)
-	// If decoding fails, return 400 Bad Request
 	if err := json.NewDecoder(r.Body).Decode(&reqTodo); err != nil {
-		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -48,7 +48,7 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 		useErr := translateValidationError(err)
 		// Dynamic message, e.g., "Title is required"
 		// Similar to Joi validation errors in JS or Bean Validation in Java
-		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: useErr})
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: useErr})
 		return
 	}
 
@@ -57,10 +57,10 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	todo, err := h.Service.CreateTodo(r.Context(), reqTodo.Title)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidTitle) {
-			writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
+			utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})
+		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})
 		return
 	}
 
@@ -71,7 +71,7 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: todo.CreatedAt.Format(time.RFC3339), // Format time as ISO string
 	}
 
-	writeJSON(w, http.StatusCreated, respTodo)
+	utils.WriteJSON(w, http.StatusCreated, respTodo)
 }
 
 // GetTodo handles GET /todos/{id} requests.
@@ -81,7 +81,7 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 	// Check if id parameter exists
 
 	if idr == "" {
-		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
 		return
 	}
 
@@ -89,17 +89,17 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.ParseInt(idr, 10, 64) // Convert id string to int
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
 		return
 	}
 	// Get the todo from the service
 	todo, err := h.Service.GetTodo(r.Context(), id) // Get the todo from the service
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) { // Check custom error
-			writeJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
+			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
 			return
 		}
-		writeJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"}) // Generic for security
+		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"}) // Generic for security
 		return
 	}
 
@@ -111,7 +111,7 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: todo.CreatedAt.Format(time.RFC3339), // Format time as ISO string
 	}
 
-	writeJSON(w, http.StatusOK, respTodo) // Return the todo as JSON
+	utils.WriteJSON(w, http.StatusOK, respTodo) // Return the todo as JSON
 }
 
 // UpdateTodo handles PUT /todos/{id} requests.
@@ -119,13 +119,13 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	idr := chi.URLParam(r, "id") // Get the "id" URL parameter
 
 	if idr == "" {
-		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
 		return
 	}
 
 	id, err := strconv.ParseInt(idr, 10, 64) // Convert id string to int
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
 		return
 	}
 
@@ -134,7 +134,7 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	// Decode the JSON body into the todo struct
 	// If decoding fails, return 400 Bad Request
 	if err := json.NewDecoder(r.Body).Decode(&todoDTO); err != nil {
-		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()}) // Using struct for consistency
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()}) // Using struct for consistency
 		return
 	}
 
@@ -142,7 +142,7 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 
 	// Validate using tags in UpdateTodoDTO (like Joi.validate in JS)
 	if err := validate.New().Struct(todoDTO); err != nil {
-		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()}) // Dynamic message, e.g., "Title is required"
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()}) // Dynamic message, e.g., "Title is required"
 		return
 	}
 
@@ -150,14 +150,14 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	updated, err := h.Service.UpdateTodo(r.Context(), id, todoDTO.Title, todoDTO.Done)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) { // Check custom error )
-			writeJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
+			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
 			return
 		} else if errors.Is(err, domain.ErrInvalidTitle) { // Optional: If service returns this
-			writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
+			utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
 			return
 		}
 		// TODO: Add logging here, e.g., log.Printf("Internal error updating todo %d: %v", id, err)
-		writeJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"}) // Generic for security
+		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"}) // Generic for security
 		return
 	}
 
@@ -168,7 +168,7 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: updated.CreatedAt.Format(time.RFC3339), // Format time as ISO string
 	}
 
-	writeJSON(w, http.StatusOK, respTodo) // Return the updated todo as JSON
+	utils.WriteJSON(w, http.StatusOK, respTodo) // Return the updated todo as JSON
 }
 
 // DeleteTodo handles DELETE /todos/{id} requests.
@@ -176,39 +176,29 @@ func (h *TodoHandlers) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 	idr := chi.URLParam(r, "id") // Get the "id" URL parameter
 
 	if idr == "" {
-		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
 		return
 	}
 
 	id, err := strconv.ParseInt(idr, 10, 64) // Convert id string to int
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
 		return
 	}
 
 	if err := h.Service.DeleteTodo(r.Context(), id); err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			writeJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
+			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
 			return
 		}
-		writeJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"}) // Generic for security
+		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"}) // Generic for security
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent) // 204 No Content
 }
 
-// writeJSON is a helper to write JSON responses.
-// type any = interface{} any is an alias for interface{} and is equivalent to interface{} in all ways.
-func writeJSON(w http.ResponseWriter, status int, data any) {
-	w.Header().Set("Content-Type", "application/json") // Set content type header
-
-	w.WriteHeader(status)           // Set the status code
-	json.NewEncoder(w).Encode(data) // Encode and write the JSON response
-}
-
 // translateValidationError converts validator errors to user-friendly strings
-
 func translateValidationError(err error) string {
 	validationErrs, ok := err.(validator.ValidationErrors)
 	if !ok {

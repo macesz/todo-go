@@ -2,17 +2,14 @@ package user
 
 import (
 	"context"
-	"errors"
 
 	"github.com/macesz/todo-go/domain"
 )
 
-var ErrInvalidInput = errors.New("invalid input")
-
 // create user
 func (u *UserService) CreateUser(ctx context.Context, name, email, password string) (*domain.User, error) {
 	if name == "" || email == "" || password == "" {
-		return nil, ErrInvalidInput
+		return nil, domain.ErrInvalidInput
 	}
 
 	user := &domain.User{
