@@ -3,11 +3,14 @@ package todo
 import (
 	"encoding/json" // For JSON (like JSON.parse/stringify in JS)
 	"errors"
+	"fmt"
 	"net/http" // Standard HTTP library (like fetch in JS or HttpServlet in Java)
 	"strconv"
+	"strings"
 	"time"
 
 	chi "github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 	validate "github.com/go-playground/validator/v10" // For struct validation (like Joi in JS or Hibernate Validator in Java)
 	"github.com/macesz/todo-go/domain"
 	// String conversions (like parseInt in JS)
@@ -42,7 +45,10 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := validate.New().Struct(reqTodo); err != nil {
-		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
+		useErr := translateValidationError(err)
+		// Dynamic message, e.g., "Title is required"
+		// Similar to Joi validation errors in JS or Bean Validation in Java
+		writeJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: useErr})
 		return
 	}
 
@@ -96,7 +102,7 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"}) // Generic for security
 		return
 	}
-	
+
 	// Map to response DTO
 	respTodo := domain.TodoDTO{
 		ID:        todo.ID,
@@ -185,7 +191,7 @@ func (h *TodoHandlers) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
 			return
 		}
-			writeJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"}) // Generic for security
+		writeJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"}) // Generic for security
 		return
 	}
 
@@ -199,4 +205,37 @@ func writeJSON(w http.ResponseWriter, status int, data any) {
 
 	w.WriteHeader(status)           // Set the status code
 	json.NewEncoder(w).Encode(data) // Encode and write the JSON response
+}
+
+// translateValidationError converts validator errors to user-friendly strings
+
+func translateValidationError(err error) string {
+	validationErrs, ok := err.(validator.ValidationErrors)
+	if !ok {
+		return "validation failed"
+	}
+
+	messages := []string{}
+	for _, fieldErr := range validationErrs {
+		switch fieldErr.Field() {
+		case "Title":
+			switch fieldErr.Tag() {
+			case "required":
+				messages = append(messages, "title is required")
+			case "max":
+				messages = append(messages, "title must be at most 255 characters")
+			default:
+				messages = append(messages, "title is invalid")
+			}
+		default:
+			messages = append(messages, fmt.Sprintf("%s is invalid", strings.ToLower(fieldErr.Field())))
+		}
+
+	}
+
+	if len(messages) == 0 {
+		return "validation failed"
+	}
+
+	return strings.Join(messages, "; ") // Combine if multiple errors
 }

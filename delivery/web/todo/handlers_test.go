@@ -59,7 +59,7 @@ func TestListTodos(t *testing.T) {
 			mockReturn:     nil,
 			mockError:      http.ErrServerClosed,
 			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"error":"http: Server closed"}` + "\n",
+			expectedBody:   `{"error":"internal server error"}`, // Generic message for security
 		},
 	}
 
@@ -120,16 +120,16 @@ func TestCreateTodo(t *testing.T) {
 			mockReturn:     nil,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `"unexpected EOF"`, // Matches handler: writeJSON with err.Error() as string
+			expectedBody:   `{"error":"unexpected EOF"}`, // domain.ErrorResponse format
 		},
 		{
-			name:           "Missing title",
+			name:           "Missing title (validation error)",
 			inputBody:      `{"title":""}`,
 			shouldCallMock: false, // Handler validates before service call
 			mockReturn:     nil,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"error":"title is required and must be between 1 and 255 characters"}`, // Matches handler
+			expectedBody:   `{"error":"title is required"}`,
 		},
 		{
 			name:           "Service error",
@@ -138,8 +138,9 @@ func TestCreateTodo(t *testing.T) {
 			shouldCallMock: true,
 			mockReturn:     nil,
 			mockError:      errors.New("error creating todo"),
-			expectedStatus: http.StatusBadRequest, // Matches handler
-			expectedBody:   `"error creating todo"`},
+			expectedStatus: http.StatusInternalServerError,      // Matches handler
+			expectedBody:   `{"error":"internal server error"}`, // Generic message for security
+		},
 	}
 
 	for _, tt := range tests {
@@ -225,9 +226,18 @@ func TestGetTodo(t *testing.T) {
 			urlParam:       "999",
 			shouldCallMock: true,
 			mockReturn:     nil,
-			mockError:      errors.New("not found"),
+			mockError:      domain.ErrNotFound,
 			expectedStatus: http.StatusNotFound,
-			expectedBody:   `{"error":"not found"}`,
+			expectedBody:   `{"error":"todo not found"}`,
+		},
+		{
+			name:           "Internal server error", // NEW: Covers non-NotFound errors
+			urlParam:       "1",
+			shouldCallMock: true,
+			mockReturn:     nil,
+			mockError:      errors.New("database connection failed"), // Any non-domain.ErrNotFound error
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"error":"internal server error"}`, // Generic message
 		},
 	}
 
@@ -250,9 +260,6 @@ func TestGetTodo(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			reqURL := "/todos/" + tt.urlParam
-			if tt.urlParam == "" {
-				reqURL = "/todos/"
-			}
 
 			req, err := http.NewRequest(http.MethodGet, reqURL, nil)
 			require.NoError(t, err)
@@ -265,8 +272,12 @@ func TestGetTodo(t *testing.T) {
 			handler.GetTodo(rr, req)
 
 			require.Equal(t, tt.expectedStatus, rr.Code)
-			assert.JSONEq(t, tt.expectedBody, rr.Body.String())
 
+			if tt.expectedBody == "" {
+				assert.Equal(t, tt.expectedBody, rr.Body.String())
+			} else {
+				assert.JSONEq(t, tt.expectedBody, rr.Body.String())
+			}
 			mockService.AssertExpectations(t)
 			rr.Body.Reset() // Reset the response recorder for the next iteration
 		})

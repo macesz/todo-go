@@ -16,6 +16,9 @@ var (
 	// ErrInvalidInput is a general error for validation failures.
 	ErrInvalidInput = errors.New("invalid input")
 
+	ErrUnauthorized = errors.New("unauthorized") // 401: Missing/invalid auth token
+	ErrForbidden    = errors.New("forbidden")    // 403: Valid auth, but no permission
+
 	// ErrDuplicate is returned if a duplicate resource exists (e.g., todo title or user email).
 	ErrDuplicate = errors.New("resource already exists")
 
