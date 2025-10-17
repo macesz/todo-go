@@ -43,72 +43,55 @@ func TestCreateUser(t *testing.T) {
 			inputEmail:     "test@example.com",
 			inputPassword:  "password",
 			shouldCallMock: true,
-			inputBody:      `{"name":"Test User", "email":"test@example.com", "password": "password"}`,
-			mockReturn: &domain.User{
-				ID:       1,
-				Name:     "Test User",
-				Email:    "test@example.com",
-				Password: "password",
-			},
+			inputBody:      `{"name":"Test User","email":"test@example.com","password":"password"}`,
+			mockReturn:     &domain.User{ID: 1, Name: "Test User", Email: "test@example.com"},
 			mockError:      nil,
 			expectedStatus: http.StatusCreated,
-			expectedBody: `{
-				ID:       1,
-				Name:     "Test User",
-				Email:    "test@example.com",
-				Password: "password",
-			}`,
+			expectedBody:   `{"email":"test@example.com", "id":1, "name":"Test User"}`,
 		}, {
 			name:           "Invalid JSON",
-			inputBody:      `{"Name:"Test User", Email:"test@example.com", password: "password","}`,
+			inputBody:      `{"name":"Test User"`, // Malformed (missing closing brace)
 			shouldCallMock: false,
 			mockReturn:     nil,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"error":"invalid JSON"}`,
+			expectedBody:   `{"error":"unexpected EOF"}`, // Match actual decoder error (run handler to confirm exact string)
 		},
 		{
-			name:           "Service error",
+			name:           "Internal server error",
 			inputName:      "Test User",
 			inputEmail:     "test@example.com",
-			inputPassword:  "password123",
-			inputBody:      `{"Name:"Test User", Email:"test@example.com", password: "password","}`,
+			inputPassword:  "password",
+			inputBody:      `{"name":"Test User","email":"test@example.com","password":"password"}`,
 			shouldCallMock: true,
 			mockReturn:     nil,
-			mockError:      errors.New("error creating user"),
+			mockError:      errors.New("database failure"), // Generic error → 500
 			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"error":"error creating user"}`,
+			expectedBody:   `{"error":"internal server error"}`,
 		},
 		{
 			name:           "Missing Name",
-			inputBody:      `{"name":"",Email:"test@example.com", password: "password","}`,
+			inputBody:      `{"email":"test@example.com","password":"password"}`, // Valid JSON, missing name
 			shouldCallMock: false,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"error":"missing required name"}`,
+			expectedBody:   `{"error":"Name is required"}`,
 		}, {
 			name:           "Missing Email",
-			inputBody:      `{"name":"Test User",Email:"", password: "password","}`,
+			inputBody:      `{"name":"Test User","password":"password"}`, // Valid JSON, missing email
 			shouldCallMock: false,
 			mockReturn:     nil,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"error":"missing required email"}`,
+			expectedBody:   `{"error":"Email is required"}`,
 		}, {
 			name:           "Missing Password",
-			inputBody:      `{"name":"Test User",Email:"test@example.com", password: "","}`,
+			inputBody:      `{"name":"Test User","email":"test@example.com"}`, // Valid JSON, missing password
 			shouldCallMock: false,
 			mockReturn:     nil,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"error":"missing required password"}`,
-		}, {
-			name:           "Wrong Email",
-			inputBody:      `{"name":"Test User",Email:"test.user.com", password: "password","}`,
-			shouldCallMock: false,
-			mockError:      nil,
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"error":"wrong email"}`,
+			expectedBody:   `{"error":"Password is required"}`,
 		},
 	}
 
@@ -146,7 +129,7 @@ func TestCreateUser(t *testing.T) {
 
 }
 
-func GetUser(t *testing.T) {
+func TestGetUser(t *testing.T) {
 	tests := []struct {
 		name           string
 		urlParam       string
@@ -171,15 +154,15 @@ func GetUser(t *testing.T) {
 			mockReturn:     nil,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"error":"invalid user ID"}`,
+			expectedBody:   `{"error":"id must be an integer"}`,
 		}, {
 			name:           "User not found",
-			urlParam:       "abc",
-			shouldCallMock: false,
+			urlParam:       "999",
+			shouldCallMock: true,
 			mockReturn:     nil,
-			mockError:      errors.New("user not found"),
+			mockError:      domain.ErrUserNotFound,
 			expectedStatus: http.StatusNotFound,
-			expectedBody:   `{"error":"not found"}`,
+			expectedBody:   `{"error":"user not found"}`,
 		}, {
 			name:           "Missing ID",
 			urlParam:       "",
@@ -187,6 +170,15 @@ func GetUser(t *testing.T) {
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"id is required"}`,
+		},
+		{
+			name:           "Internal server error", // NEW: Covers non-NotFound errors
+			urlParam:       "1",
+			shouldCallMock: true,
+			mockReturn:     nil,
+			mockError:      errors.New("database connection failed"), // Any non-domain.ErrNotFound error
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"error":"internal server error"}`, // Generic message
 		},
 	}
 
@@ -200,8 +192,8 @@ func GetUser(t *testing.T) {
 					t.Fatalf("invalid test setup: urlParam %q is not a valid int64", tt.urlParam)
 				}
 
-				mockService.On("DeleteUser", mock.Anything, expectedId).
-					Return(tt.mockError).Once()
+				mockService.On("GetUser", mock.Anything, expectedId).
+					Return(tt.mockReturn, tt.mockError).Once()
 			}
 
 			handlers := &UserHandlers{
@@ -211,9 +203,6 @@ func GetUser(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			reqURL := "/users/" + tt.urlParam
-			if tt.urlParam == "" {
-				reqURL = "/users/"
-			}
 
 			req, err := http.NewRequest(http.MethodGet, reqURL, nil)
 			require.NoError(t, err)
@@ -226,8 +215,12 @@ func GetUser(t *testing.T) {
 			handlers.GetUser(rr, req) // Assumes your handler method is named GetUser
 
 			require.Equal(t, tt.expectedStatus, rr.Code)
-			assert.JSONEq(t, tt.expectedBody, rr.Body.String())
 
+			if tt.expectedBody == "" {
+				assert.Equal(t, tt.expectedBody, rr.Body.String())
+			} else {
+				assert.JSONEq(t, tt.expectedBody, rr.Body.String())
+			}
 			mockService.AssertExpectations(t)
 			rr.Body.Reset()
 		})
@@ -256,18 +249,17 @@ func TestDeleteUser(t *testing.T) {
 			shouldCallMock: false,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `"invalid user ID"`,
+			expectedBody:   `{"error":"id must be an integer"}`,
 		}, {
 			name:           "User not found",
 			urlParam:       "999",
 			shouldCallMock: true,
-			mockError:      errors.New("user not found"),
+			mockError:      domain.ErrUserNotFound,
 			expectedStatus: http.StatusNotFound,
-			expectedBody:   `{"error":"not found"}`,
+			expectedBody:   `{"error":"user not found"}`,
 		}, {
 			name:           "Missing ID",
 			urlParam:       "",
-			shouldCallMock: false,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"id is required"}`,

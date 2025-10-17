@@ -230,3 +230,145 @@ func (_c *UserStore_GetUser_Call) RunAndReturn(run func(ctx context.Context, id 
 	_c.Call.Return(run)
 	return _c
 }
+
+// GetUserByEmail provides a mock function for the type UserStore
+func (_mock *UserStore) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	ret := _mock.Called(ctx, email)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserByEmail")
+	}
+
+	var r0 *domain.User
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*domain.User, error)); ok {
+		return returnFunc(ctx, email)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *domain.User); ok {
+		r0 = returnFunc(ctx, email)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*domain.User)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, email)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// UserStore_GetUserByEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUserByEmail'
+type UserStore_GetUserByEmail_Call struct {
+	*mock.Call
+}
+
+// GetUserByEmail is a helper method to define mock.On call
+//   - ctx context.Context
+//   - email string
+func (_e *UserStore_Expecter) GetUserByEmail(ctx interface{}, email interface{}) *UserStore_GetUserByEmail_Call {
+	return &UserStore_GetUserByEmail_Call{Call: _e.mock.On("GetUserByEmail", ctx, email)}
+}
+
+func (_c *UserStore_GetUserByEmail_Call) Run(run func(ctx context.Context, email string)) *UserStore_GetUserByEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *UserStore_GetUserByEmail_Call) Return(user *domain.User, err error) *UserStore_GetUserByEmail_Call {
+	_c.Call.Return(user, err)
+	return _c
+}
+
+func (_c *UserStore_GetUserByEmail_Call) RunAndReturn(run func(ctx context.Context, email string) (*domain.User, error)) *UserStore_GetUserByEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Login provides a mock function for the type UserStore
+func (_mock *UserStore) Login(ctx context.Context, email string, password string) (*domain.User, error) {
+	ret := _mock.Called(ctx, email, password)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Login")
+	}
+
+	var r0 *domain.User
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*domain.User, error)); ok {
+		return returnFunc(ctx, email, password)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *domain.User); ok {
+		r0 = returnFunc(ctx, email, password)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*domain.User)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, email, password)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// UserStore_Login_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Login'
+type UserStore_Login_Call struct {
+	*mock.Call
+}
+
+// Login is a helper method to define mock.On call
+//   - ctx context.Context
+//   - email string
+//   - password string
+func (_e *UserStore_Expecter) Login(ctx interface{}, email interface{}, password interface{}) *UserStore_Login_Call {
+	return &UserStore_Login_Call{Call: _e.mock.On("Login", ctx, email, password)}
+}
+
+func (_c *UserStore_Login_Call) Run(run func(ctx context.Context, email string, password string)) *UserStore_Login_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *UserStore_Login_Call) Return(user *domain.User, err error) *UserStore_Login_Call {
+	_c.Call.Return(user, err)
+	return _c
+}
+
+func (_c *UserStore_Login_Call) RunAndReturn(run func(ctx context.Context, email string, password string) (*domain.User, error)) *UserStore_Login_Call {
+	_c.Call.Return(run)
+	return _c
+}

@@ -4,6 +4,7 @@ import (
 	"encoding/json" // For JSON (like JSON.parse/stringify in JS)
 	"errors"
 	"net/http" // Standard HTTP library (like fetch in JS or HttpServlet in Java)
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -96,6 +97,12 @@ func (h *UserHandlers) GetUser(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, respUser)
 }
 
+// Get user by email for authentication
+
+func (h *UserHandlers) Login(w http.ResponseWriter, r *http.Request) {
+
+}
+
 // DeleteUser creates a new HTTP handler for deleting a user.
 func (h *UserHandlers) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	idr := chi.URLParam(r, "id") // Get the "id" URL parameter
@@ -173,4 +180,11 @@ func translateValidationError(err error) string {
 	}
 	return strings.Join(messages, "; ") // Combine if multiple errors
 
+}
+
+// Helper: Simple email format check (it can be in the to domain if you want)
+func isValidEmail(email string) bool {
+	pattern := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$` // Basic regex for email
+	matched, _ := regexp.MatchString(pattern, email)
+	return matched
 }

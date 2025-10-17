@@ -3,11 +3,14 @@ package pguser
 import (
 	"context"
 	"errors"
+	"fmt"
 	"text/template"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/macesz/todo-go/domain"
 	"github.com/macesz/todo-go/pkg"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Store struct {
@@ -27,7 +30,7 @@ func CreateStore(db *sqlx.DB) *Store {
 	}
 }
 
-func (s *Store) CreateUser(ctx context.Context, name, email, password string) (*domain.User, error) {
+func (s *Store) CreateUser(ctx context.Context, user *domain.User) (*domain.User, error) {
 	templateParams := map[string]any{}
 
 	querystr, err := pkg.PrepareQuery(s.queryTemplates[createUserQuery], templateParams)
@@ -35,15 +38,23 @@ func (s *Store) CreateUser(ctx context.Context, name, email, password string) (*
 		return nil, err
 	}
 
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+
 	queryParams := map[string]any{
-		"name":     name,
-		"email":    email,
-		"password": password,
+		"name":     user.Name,
+		"email":    user.Email,
+		"password": string(hashedPassword),
 	}
 
 	result, err := s.db.NamedQueryContext(ctx, querystr, queryParams)
 	if err != nil {
-		return nil, err
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" { // "23505" = unique_violation
+			return nil, domain.ErrDuplicate
+		}
+		return nil, fmt.Errorf("db create user : %w", err)
 	}
 
 	defer result.Close()
@@ -59,14 +70,13 @@ func (s *Store) CreateUser(ctx context.Context, name, email, password string) (*
 		return nil, errors.New("failed to retrieve inserted user ID")
 	}
 
-	user := &domain.User{
+	createdUser := &domain.User{
 		ID:       id,
-		Name:     name,
-		Email:    email,
-		Password: password,
+		Name:     user.Name,
+		Email:    user.Email,
+		Password: user.Password, // Hashed by service
 	}
-
-	return user, nil
+	return createdUser, nil
 }
 
 func (s *Store) GetUser(ctx context.Context, id int64) (*domain.User, error) {
@@ -95,8 +105,80 @@ func (s *Store) GetUser(ctx context.Context, id int64) (*domain.User, error) {
 			return nil, err
 		}
 	} else {
-		return nil, errors.New("user not found")
+		return nil, domain.ErrUserNotFound
 	}
+
+	return row.ToDomain(), nil
+}
+
+// get user by email for duplicate check
+func (s *Store) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	querystr, err := pkg.PrepareQuery(s.queryTemplates[getUserByEmailQuery], nil)
+	if err != nil {
+		return nil, err
+	}
+
+	queryParams := map[string]any{
+		"email": email,
+	}
+	result, err := s.db.NamedQueryContext(ctx, querystr, queryParams)
+	if err != nil {
+		return nil, err
+	}
+	defer result.Close()
+
+	var row rowDTO
+
+	if result.Next() {
+		err = result.StructScan(&row)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, nil // No user found with this email
+	}
+
+	return row.ToDomain(), nil
+
+}
+
+// Login user
+func (s *Store) Login(ctx context.Context, email, password string) (*domain.User, error) {
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	querystr, err := pkg.PrepareQuery(s.queryTemplates[loginUserQuery], nil)
+	if err != nil {
+		return nil, err
+	}
+
+	queryParams := map[string]any{
+		"email":    email,
+		"password": string(hashedPassword),
+	}
+
+	result, err := s.db.NamedQueryContext(ctx, querystr, queryParams)
+	if err != nil {
+		return nil, err
+	}
+
+	defer result.Close()
+
+	var row rowDTO
+
+	if result.Next() {
+		err = result.StructScan(&row)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, domain.ErrUserNotFound
+	}
+
+	// Compare the provided password with the stored hashed password
 
 	return row.ToDomain(), nil
 }
@@ -120,11 +202,11 @@ func (s *Store) DeleteUser(ctx context.Context, id int64) error {
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("db delete user: %w", err)
 	}
 
 	if rowsAffected == 0 {
-		return errors.New("user not found")
+		return domain.ErrUserNotFound
 	}
 
 	return nil
