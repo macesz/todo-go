@@ -44,10 +44,9 @@ func TestCreateUser(t *testing.T) {
 			},
 			wantErr: false,
 			want: &domain.User{
-				ID:       1,
-				Name:     "Test User",
-				Email:    "test@example.com",
-				Password: "password",
+				ID:    1,
+				Name:  "Test User",
+				Email: "test@example.com",
 			},
 			initMocks: func(tt *testing.T, ta *args, s *UserService) {
 				store := mocks.NewUserStore(tt)
@@ -57,10 +56,9 @@ func TestCreateUser(t *testing.T) {
 				})
 
 				store.On("CreateUser", ta.ctx, userMatcher).Return(&domain.User{
-					ID:       1,
-					Name:     "Test User",
-					Email:    "test@example.com",
-					Password: "password",
+					ID:    1,
+					Name:  "Test User",
+					Email: "test@example.com",
 				}, nil).Once()
 
 				s.UserStore = store
@@ -137,10 +135,9 @@ func TestGetTodo(t *testing.T) {
 			},
 			wantErr: false,
 			want: &domain.User{
-				ID:       1,
-				Name:     "Test User",
-				Email:    "test@example.com",
-				Password: "password",
+				ID:    1,
+				Name:  "Test User",
+				Email: "test@example.com",
 			},
 
 			initMocks: func(tt *testing.T, ta *args, s *UserService) {
@@ -150,10 +147,9 @@ func TestGetTodo(t *testing.T) {
 				// Set up the expected behavior of the mock store
 				// When Get is called with the given context and id, return a predefined todo
 				store.On("GetUser", ta.ctx, ta.id).Return(&domain.User{
-					ID:       1,
-					Name:     "Test User",
-					Email:    "test@example.com",
-					Password: "password",
+					ID:    1,
+					Name:  "Test User",
+					Email: "test@example.com",
 				}, nil).Once()
 
 				s.UserStore = store
@@ -269,17 +265,16 @@ func TestDeleteUser(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-						s := &UserService{
-							UserStore: mocks.NewUserStore(t),
-						}
+			s := &UserService{
+				UserStore: mocks.NewUserStore(t),
+			}
 
-						tc.initMocks(t, &tc.args, s)
+			tc.initMocks(t, &tc.args, s)
 
-						err := s.DeleteUser(tc.args.ctx, tc.args.id)
+			err := s.DeleteUser(tc.args.ctx, tc.args.id)
 
-						require.Equal(t, tc.wantErr, err != nil)
+			require.Equal(t, tc.wantErr, err != nil)
 
 		})
 	}
 }
-

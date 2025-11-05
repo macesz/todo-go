@@ -7,10 +7,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	validate "github.com/go-playground/validator/v10" // For struct validation (like Joi in JS or Hibernate Validator in Java)
+	"github.com/macesz/todo-go/delivery/web/auth"
 	"github.com/macesz/todo-go/delivery/web/utils"
 	"github.com/macesz/todo-go/domain"
 )
@@ -100,7 +102,54 @@ func (h *UserHandlers) GetUser(w http.ResponseWriter, r *http.Request) {
 // Get user by email for authentication
 
 func (h *UserHandlers) Login(w http.ResponseWriter, r *http.Request) {
+	var reqLogin domain.LoginRequest
 
+	if err := json.NewDecoder(r.Body).Decode(&reqLogin); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "invalid request body"})
+		return
+	}
+	defer r.Body.Close()
+
+	if reqLogin.Email == "" || reqLogin.Password == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "email and password are required"})
+		return
+	}
+
+	user, err := h.Service.Login(r.Context(), reqLogin.Email, reqLogin.Password)
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidCredentials) {
+			utils.WriteJSON(w, http.StatusUnauthorized, domain.ErrorResponse{Error: err.Error()})
+			return
+		}
+		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})
+		return
+	}
+
+	// On successful login,
+	// create a jwt token and add to response header
+	// send a success response and
+	// redirect to /todos
+
+	claims := auth.NewUserClaims(user, 1*time.Hour)
+
+	_, tokenString, err := h.TokenAuth.Encode(claims.ToMap())
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "failed to generate token"})
+		return
+	}
+
+	// Prepare response
+	respLogin := domain.LoginResponseDTO{
+		Token: tokenString,
+		User: domain.UserResponseDTO{
+			ID:    user.ID,
+			Name:  user.Name,
+			Email: user.Email,
+		},
+	}
+
+	// Send response
+	utils.WriteJSON(w, http.StatusOK, respLogin)
 }
 
 // DeleteUser creates a new HTTP handler for deleting a user.
@@ -129,10 +178,6 @@ func (h *UserHandlers) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent) // 204 No Content on successful deletion
-}
-
-func (h *UserHandlers) LoginUser(w http.ResponseWriter, r *http.Request) {
-	// Implementation goes here
 }
 
 func translateValidationError(err error) string {

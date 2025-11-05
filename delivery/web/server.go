@@ -8,6 +8,7 @@ import (
 	chi "github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/jwtauth/v5"
+	"github.com/macesz/todo-go/delivery/web/middlewares"
 	"github.com/macesz/todo-go/domain"
 )
 
@@ -18,6 +19,7 @@ func StartServer(ctx context.Context, conf domain.Config, handlers *Handlers) {
 	// Chi router: like Express app or Java Servlet
 	r := chi.NewRouter()
 
+	// JWT Auth setup with HS256 and secret from config
 	tokenAuth := jwtauth.New("HS256", []byte(conf.JWTSecret), nil)
 
 	// Chi middlewares: small, composable functions that wrap handlers.
@@ -26,24 +28,26 @@ func StartServer(ctx context.Context, conf domain.Config, handlers *Handlers) {
 	r.Use(middleware.Logger)    // Logs the start and end of each request
 	r.Use(middleware.Recoverer) // Recovers from panics, returns 500 instead of crashing
 
-	// Routes
-
-	// Public Routes
+	// ============================================
+	// PUBLIC ROUTES (No authentication required)
+	// ============================================
 	r.Group(func(r chi.Router) {
 		// r.Get("/", indexPage)
 		// r.Get("/{AssetUrl}", GetAsset)
 		r.Post("/user", handlers.User.CreateUser) // Create a new user
-		r.Post("/login", handlers.User.LoginUser) // Login a user
+		r.Post("/login", handlers.User.Login)     // Login a user
 	})
 
-	// Private Routes
-	// Require Authentication
+	// ============================================
+	// PROTECTED ROUTES (JWT authentication required)
+	// ============================================
 	r.Group(func(r chi.Router) {
 		// r.Use(AuthMiddleware)
+
 		// Seek, verify and validate JWT tokens
 		r.Use(jwtauth.Verifier(tokenAuth))
-		// Handle valid / invalid tokens. Here we use the provided authenticator middleware
-		r.Use(jwtauth.Authenticator(tokenAuth))
+		r.Use(middlewares.Authenticator)
+		r.Use(middlewares.UserContext)
 
 		r.Use(middleware.AllowContentType("application/json", "text/xml"))
 
@@ -56,7 +60,7 @@ func StartServer(ctx context.Context, conf domain.Config, handlers *Handlers) {
 		})
 
 		r.Route("/user", func(r chi.Router) {
-			r.Get("/", handlers.User.GetUser)           // Get specific user by ID
+			r.Get("/", handlers.User.GetUser)
 			r.Delete("/{id}", handlers.User.DeleteUser) // Delete a user by ID
 		})
 	})

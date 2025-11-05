@@ -35,3 +35,14 @@ type CreateUserDTO struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=6,max=255,containsany=0123456789,containsany=ABCDEFGHIJKLMNOPQRSTUVWXYZ"`
 }
+
+// LoginResponseDTO - Response for successful login
+type LoginResponseDTO struct {
+	Token string          `json:"token"`
+	User  UserResponseDTO `json:"user"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}

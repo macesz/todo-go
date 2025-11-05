@@ -13,3 +13,14 @@ func WriteJSON(w http.ResponseWriter, status int, data any) {
 	w.WriteHeader(status)           // Set the status code
 	json.NewEncoder(w).Encode(data) // Encode and write the JSON response
 }
+
+func JsonError(err error) string {
+	type response struct {
+		Error string `json:"error"`
+	}
+
+	rsp := response{Error: err.Error()}
+	jsonData, _ := json.Marshal(rsp)
+
+	return string(jsonData)
+}

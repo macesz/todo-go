@@ -23,9 +23,12 @@ var (
 	ErrDuplicate = errors.New("resource already exists")
 
 	// User-specific errors (add more as needed)
-	ErrUserNotFound    = errors.New("user not found")
-	ErrInvalidEmail    = errors.New("invalid email")
-	ErrInvalidPassword = errors.New("invalid password")
-
+	ErrUserNotFound       = errors.New("user not found")
+	ErrInvalidEmail       = errors.New("invalid email")
+	ErrInvalidPassword    = errors.New("invalid password")
+	ErrWeakPassword       = errors.New("password must be at least 8 characters")
+	ErrEmailExists        = errors.New("email already exists")
 	ErrInvalidCredentials = errors.New("invalid credentials")
+
+	ErrInvalidToken = errors.New("invalid token claims")
 )

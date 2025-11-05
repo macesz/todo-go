@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/jwtauth/v5"
 	"github.com/macesz/todo-go/delivery/web/user/mocks"
 	"github.com/macesz/todo-go/domain"
 	"github.com/stretchr/testify/assert"
@@ -22,6 +24,119 @@ type MockTodoService struct {
 	mu     sync.Mutex
 	todos  map[int]domain.User
 	nextID int
+}
+
+func TestLoginUser(t *testing.T) {
+	tests := []struct {
+		name           string
+		inputBody      string
+		setupMock      func(m *mocks.UserService)
+		expectedStatus int
+		checkResponse  func(t *testing.T, rr *httptest.ResponseRecorder)
+	}{
+		{
+			name:      "Successful login",
+			inputBody: `{"email":"test@example.com","password":"Password123"}`,
+			setupMock: func(m *mocks.UserService) {
+				m.On("Login", mock.Anything,
+					"test@example.com",
+					"Password123").Return(&domain.User{
+					ID:    1,
+					Name:  "Test User",
+					Email: "test@example.com",
+				}, nil).Once()
+			},
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				var response domain.LoginResponseDTO
+				err := json.Unmarshal(rr.Body.Bytes(), &response)
+				assert.NoError(t, err, "Should parse response JSON")
+
+				assert.NotEmpty(t, response.Token, "Token should not be empty")
+
+				assert.Equal(t, int64(1), response.User.ID)
+				assert.Equal(t, "Test User", response.User.Name)
+				assert.Equal(t, "test@example.com", response.User.Email)
+
+				assert.True(t, strings.Count(response.Token, ".") == 2, "Token should have 3 parts separated by dots")
+			},
+		},
+		{
+			name:      "Invalid credentials - wrong password",
+			inputBody: `{"email":"test@example.com","password":"WrongPassword123"}`,
+			setupMock: func(m *mocks.UserService) {
+				m.On("Login",
+					mock.Anything,
+					"test@example.com",
+					"WrongPassword123",
+				).Return(nil, domain.ErrInvalidCredentials).Once()
+			},
+			expectedStatus: http.StatusUnauthorized,
+			checkResponse: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				var response domain.ErrorResponse
+				err := json.Unmarshal(rr.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "invalid credentials", response.Error)
+			},
+		}, {
+			name:           "Invalid JSON",
+			inputBody:      `{"email":"test@example.com"`, // Malformed JSON
+			setupMock:      func(m *mocks.UserService) {}, // No service call
+			expectedStatus: http.StatusBadRequest,
+			checkResponse: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				var response domain.ErrorResponse
+				err := json.Unmarshal(rr.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "invalid request body", response.Error)
+			},
+		},
+		{
+			name:      "Internal server error",
+			inputBody: `{"email":"test@example.com","password":"Password123"}`,
+			setupMock: func(m *mocks.UserService) {
+				m.On("Login",
+					mock.Anything,
+					"test@example.com",
+					"Password123",
+				).Return(nil, errors.New("database connection failed")).Once()
+			},
+			expectedStatus: http.StatusInternalServerError,
+			checkResponse: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				var response domain.ErrorResponse
+				err := json.Unmarshal(rr.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "internal server error", response.Error)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockService := mocks.NewUserService(t)
+			tt.setupMock(mockService)
+
+			// Create JWT auth (with test secret)
+			tokenAuth := jwtauth.New("HS256", []byte("test-secret-key-for-testing"), nil)
+			handlers := &UserHandlers{
+				Service:   mockService,
+				TokenAuth: tokenAuth,
+			}
+
+			req := httptest.NewRequest("POST", "/login", strings.NewReader(tt.inputBody))
+			req.Header.Set("Content-Type", "application/json")
+
+			rr := httptest.NewRecorder()
+
+			handlers.Login(rr, req)
+
+			assert.Equal(t, tt.expectedStatus, rr.Code, "Status code mismatch")
+
+			if tt.checkResponse != nil {
+				tt.checkResponse(t, rr)
+			}
+			mockService.AssertExpectations(t)
+		})
+	}
 }
 
 func TestCreateUser(t *testing.T) {
@@ -41,9 +156,9 @@ func TestCreateUser(t *testing.T) {
 			name:           "Valid input",
 			inputName:      "Test User",
 			inputEmail:     "test@example.com",
-			inputPassword:  "password",
+			inputPassword:  "Password123",
 			shouldCallMock: true,
-			inputBody:      `{"name":"Test User","email":"test@example.com","password":"password"}`,
+			inputBody:      `{"name":"Test User","email":"test@example.com","password":"Password123"}`,
 			mockReturn:     &domain.User{ID: 1, Name: "Test User", Email: "test@example.com"},
 			mockError:      nil,
 			expectedStatus: http.StatusCreated,
@@ -61,8 +176,8 @@ func TestCreateUser(t *testing.T) {
 			name:           "Internal server error",
 			inputName:      "Test User",
 			inputEmail:     "test@example.com",
-			inputPassword:  "password",
-			inputBody:      `{"name":"Test User","email":"test@example.com","password":"password"}`,
+			inputPassword:  "Password123",
+			inputBody:      `{"name":"Test User","email":"test@example.com","password":"Password123"}`,
 			shouldCallMock: true,
 			mockReturn:     nil,
 			mockError:      errors.New("database failure"), // Generic error → 500
@@ -71,14 +186,14 @@ func TestCreateUser(t *testing.T) {
 		},
 		{
 			name:           "Missing Name",
-			inputBody:      `{"email":"test@example.com","password":"password"}`, // Valid JSON, missing name
+			inputBody:      `{"email":"test@example.com","password":"Password123"}`, // Valid JSON, missing name
 			shouldCallMock: false,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"Name is required"}`,
 		}, {
 			name:           "Missing Email",
-			inputBody:      `{"name":"Test User","password":"password"}`, // Valid JSON, missing email
+			inputBody:      `{"name":"Test User","password":"Password123"}`, // Valid JSON, missing email
 			shouldCallMock: false,
 			mockReturn:     nil,
 			mockError:      nil,

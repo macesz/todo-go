@@ -71,10 +71,9 @@ func (s *Store) CreateUser(ctx context.Context, user *domain.User) (*domain.User
 	}
 
 	createdUser := &domain.User{
-		ID:       id,
-		Name:     user.Name,
-		Email:    user.Email,
-		Password: user.Password, // Hashed by service
+		ID:    id,
+		Name:  user.Name,
+		Email: user.Email,
 	}
 	return createdUser, nil
 }
@@ -144,7 +143,6 @@ func (s *Store) GetUserByEmail(ctx context.Context, email string) (*domain.User,
 
 // Login user
 func (s *Store) Login(ctx context.Context, email, password string) (*domain.User, error) {
-
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
@@ -177,8 +175,6 @@ func (s *Store) Login(ctx context.Context, email, password string) (*domain.User
 	} else {
 		return nil, domain.ErrUserNotFound
 	}
-
-	// Compare the provided password with the stored hashed password
 
 	return row.ToDomain(), nil
 }
