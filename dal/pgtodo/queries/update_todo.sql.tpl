@@ -1,3 +1,4 @@
 UPDATE todos
-SET title = :title, done = :done
-WHERE id = :id;
+SET title = :title, done = :done, priority = :priority
+WHERE
+    id = :id;

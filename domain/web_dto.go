@@ -5,19 +5,23 @@ package domain
 // Similar to a Java DTO class or a JS object used in APIs.
 
 type TodoDTO struct {
-	ID        int64  `json:"id"` // json tag for easy JSON encoding (like @JsonProperty in Java)
+	ID        int64  `json:"id"`
+	UserID    int64  `json:"userID"`
 	Title     string `json:"title"`
 	Done      bool   `json:"done"`
+	Priority  int64  `json:"priority"`
 	CreatedAt string `json:"createdAt"`
 }
 
 type CreateTodoDTO struct {
-	Title string `json:"title" validate:"required,min=1,max=255"`
+	Title    string `json:"title" validate:"required,min=1,max=255"`
+	Priority int64  `json:"priority"`
 }
 
 type UpdateTodoDTO struct {
-	Title string `json:"title" validate:"required,min=1,max=255"`
-	Done  bool   `json:"done" validate:"required"`
+	Title    string `json:"title" validate:"required,min=1,max=255"`
+	Done     bool   `json:"done" validate:"required"`
+	Priority int64  `json:"priority"`
 }
 
 type ErrorResponse struct {

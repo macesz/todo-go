@@ -29,7 +29,8 @@ func TestListTodos(t *testing.T) {
 	// Define the arguments for the ListTodos method
 	// This allows us to pass different contexts for each test case
 	type args struct {
-		ctx context.Context
+		ctx    context.Context
+		userID int64
 	}
 
 	// now := time.Now()
@@ -53,8 +54,8 @@ func TestListTodos(t *testing.T) {
 			fields: fields{},
 			args:   args{ctx: context.Background()},
 			want: []*domain.Todo{
-				{ID: 1, Title: "Test Todo 1", Done: false, CreatedAt: fixed},
-				{ID: 2, Title: "Test Todo 2", Done: true, CreatedAt: fixed},
+				{ID: 1, UserID: 1, Title: "Test Todo 1", Done: false, Priority: 5, CreatedAt: fixed},
+				{ID: 2, UserID: 1, Title: "Test Todo 2", Done: true, Priority: 5, CreatedAt: fixed},
 			},
 			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
 				store := mocks.NewTodoStore(tt)
@@ -63,9 +64,9 @@ func TestListTodos(t *testing.T) {
 					store.AssertExpectations(tt)
 				})
 
-				store.On("List", ta.ctx).Return([]*domain.Todo{
-					{ID: 1, Title: "Test Todo 1", Done: false, CreatedAt: fixed},
-					{ID: 2, Title: "Test Todo 2", Done: true, CreatedAt: fixed},
+				store.On("List", ta.ctx, ta.userID).Return([]*domain.Todo{
+					{ID: 1, UserID: 1, Title: "Test Todo 1", Done: false, Priority: 5, CreatedAt: fixed},
+					{ID: 2, UserID: 1, Title: "Test Todo 2", Done: true, Priority: 5, CreatedAt: fixed},
 				}, nil).Once()
 
 				s.Store = store
@@ -82,7 +83,7 @@ func TestListTodos(t *testing.T) {
 				tt.Cleanup(func() {
 					store.AssertExpectations(tt)
 				})
-				store.On("List", ta.ctx).Return(nil, errors.New("could not list")).Once()
+				store.On("List", ta.ctx, ta.userID).Return(nil, errors.New("could not list")).Once()
 
 				s.Store = store
 			},
@@ -99,7 +100,7 @@ func TestListTodos(t *testing.T) {
 
 			tc.initMocks(t, &tc.args, s)
 
-			got, err := s.ListTodos(tc.args.ctx)
+			got, err := s.ListTodos(tc.args.ctx, tc.args.userID)
 			if tc.wantErr {
 				require.Error(t, err)
 				return
@@ -121,8 +122,10 @@ func TestCreateTodo(t *testing.T) {
 
 	// Define the arguments for the CreateTodo method
 	type args struct {
-		ctx   context.Context
-		title string
+		ctx      context.Context
+		userId   int64
+		title    string
+		priority int64
 	}
 
 	fixed := time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)
@@ -139,11 +142,13 @@ func TestCreateTodo(t *testing.T) {
 		{
 			name:   "success",
 			fields: fields{},
-			args:   args{ctx: context.Background(), title: "New Todo"},
+			args:   args{ctx: context.Background(), userId: 1, title: "New Todo", priority: 5},
 			want: &domain.Todo{
 				ID:        1,
+				UserID:    1,
 				Title:     "New Todo",
 				Done:      false,
+				Priority:  5,
 				CreatedAt: fixed,
 			},
 
@@ -153,10 +158,12 @@ func TestCreateTodo(t *testing.T) {
 
 				// Set up the expected behavior of the mock store, "ta." means test args
 				// When Create is called with the given context and title, return a predefined todo
-				store.On("Create", ta.ctx, ta.title).Return(&domain.Todo{
+				store.On("Create", ta.ctx, ta.userId, ta.title, ta.priority).Return(&domain.Todo{
 					ID:        1,
+					UserID:    1,
 					Title:     ta.title,
 					Done:      false,
+					Priority:  5,
 					CreatedAt: fixed,
 				}, nil).Once()
 
@@ -175,7 +182,7 @@ func TestCreateTodo(t *testing.T) {
 
 				// Simulate an error from the store
 
-				store.On("Create", ta.ctx, ta.title).Return((*domain.Todo)(nil), errors.New("could not create")).Once()
+				store.On("Create", ta.ctx, ta.userId, ta.title, ta.priority).Return((*domain.Todo)(nil), errors.New("could not create")).Once()
 
 				s.Store = store
 			},
@@ -183,7 +190,6 @@ func TestCreateTodo(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -193,7 +199,7 @@ func TestCreateTodo(t *testing.T) {
 
 			tc.initMocks(t, &tc.args, s)
 
-			got, err := s.CreateTodo(tc.args.ctx, tc.args.title)
+			got, err := s.CreateTodo(tc.args.ctx, tc.args.userId, tc.args.title, tc.args.priority)
 
 			require.Equal(t, tc.want, got)
 			require.Equal(t, tc.wantErr, err != nil)
@@ -211,8 +217,9 @@ func TestGetTodo(t *testing.T) {
 
 	// Define the arguments for the GetTodo method
 	type args struct {
-		ctx context.Context
-		id  int64
+		ctx    context.Context
+		userId int64
+		id     int64
 	}
 
 	now := time.Now()
@@ -230,12 +237,14 @@ func TestGetTodo(t *testing.T) {
 			name:   "success",
 			fields: fields{},
 			args: args{
-				ctx: context.Background(),
-				id:  1,
+				ctx:    context.Background(),
+				userId: 1,
+				id:     1,
 			},
 			wantErr: false,
 			want: &domain.Todo{
 				ID:        1,
+				UserID:    1,
 				Title:     "Test Todo",
 				Done:      false,
 				CreatedAt: now,
@@ -249,6 +258,7 @@ func TestGetTodo(t *testing.T) {
 				// When Get is called with the given context and id, return a predefined todo
 				store.On("Get", ta.ctx, ta.id).Return(&domain.Todo{
 					ID:        ta.id,
+					UserID:    ta.userId,
 					Title:     "Test Todo",
 					Done:      false,
 					CreatedAt: now,
@@ -271,7 +281,6 @@ func TestGetTodo(t *testing.T) {
 				tt.Cleanup(func() { store.AssertExpectations(tt) })
 
 				// Simulate not found error from the store
-
 				store.On("Get", ta.ctx, ta.id).Return(nil, errors.New("not found")).Once()
 
 				s.Store = store
@@ -290,7 +299,7 @@ func TestGetTodo(t *testing.T) {
 
 			tc.initMocks(t, &tc.args, s)
 
-			got, err := s.GetTodo(tc.args.ctx, tc.args.id)
+			got, err := s.GetTodo(tc.args.ctx, tc.args.userId, tc.args.id)
 
 			require.Equal(t, tc.want, got)
 			require.Equal(t, tc.wantErr, err != nil)
@@ -311,10 +320,12 @@ func TestUpdateTodo(t *testing.T) {
 	// Define the arguments for the UpdateTodo method
 	// This allows us to pass different contexts, ids, titles, and done statuses for each test case
 	type args struct {
-		ctx   context.Context
-		id    int64
-		title string
-		done  bool
+		ctx      context.Context
+		userId   int64
+		id       int64
+		title    string
+		done     bool
+		priority int64
 	}
 
 	fixed := time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)
@@ -333,27 +344,40 @@ func TestUpdateTodo(t *testing.T) {
 			fields:  fields{},
 			wantErr: false,
 			args: args{
-				ctx:   context.Background(),
-				id:    1,
-				title: "Updated Todo",
-				done:  true,
+				ctx:      context.Background(),
+				userId:   1,
+				id:       1,
+				title:    "Updated Todo",
+				done:     true,
+				priority: 3,
 			},
 			want: &domain.Todo{
+				UserID:    1,
 				ID:        1,
 				Title:     "Updated Todo",
 				Done:      true,
+				Priority:  3,
 				CreatedAt: fixed,
 			},
 			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
 				store := mocks.NewTodoStore(tt)
 				tt.Cleanup(func() { store.AssertExpectations(tt) })
 
-				// Set up the expected behavior of the mock store
+				store.On("Get", ta.ctx, ta.id).Return(&domain.Todo{
+					ID:        ta.id,
+					UserID:    ta.userId,
+					Title:     "Test Todo",
+					Done:      false,
+					CreatedAt: fixed,
+				}, nil).Once()
+
 				// When Update is called with the given context, id, title, and done status, return a predefined todo
-				store.On("Update", ta.ctx, ta.id, ta.title, ta.done).Return(&domain.Todo{
+				store.On("Update", ta.ctx, ta.id, ta.title, ta.done, ta.priority).Return(&domain.Todo{
+					UserID:    ta.userId,
 					ID:        ta.id,
 					Title:     ta.title,
 					Done:      ta.done,
+					Priority:  ta.priority,
 					CreatedAt: fixed,
 				}, nil).Once()
 
@@ -375,7 +399,14 @@ func TestUpdateTodo(t *testing.T) {
 				store := mocks.NewTodoStore(tt)
 				tt.Cleanup(func() { store.AssertExpectations(tt) })
 
-				store.On("Update", ta.ctx, ta.id, ta.title, ta.done).Return((*domain.Todo)(nil), errors.New("not found")).Once()
+				store.On("Get", ta.ctx, ta.id).Return(&domain.Todo{
+					ID:     ta.id,
+					UserID: ta.userId,
+					Title:  "Test Todo",
+					Done:   false,
+				}, nil).Once()
+
+				store.On("Update", ta.ctx, ta.id, ta.title, ta.done, ta.priority).Return((*domain.Todo)(nil), errors.New("not found")).Once()
 
 				s.Store = store
 			},
@@ -393,7 +424,7 @@ func TestUpdateTodo(t *testing.T) {
 
 			tc.initMocks(t, &tc.args, s)
 
-			got, err := s.UpdateTodo(tc.args.ctx, tc.args.id, tc.args.title, tc.args.done)
+			got, err := s.UpdateTodo(tc.args.ctx, tc.args.userId, tc.args.id, tc.args.title, tc.args.done, tc.args.priority)
 
 			require.Equal(t, tc.want, got)
 			require.Equal(t, tc.wantErr, err != nil)
@@ -402,7 +433,6 @@ func TestUpdateTodo(t *testing.T) {
 }
 
 func TestDeleteTodo(t *testing.T) {
-
 	t.Parallel()
 
 	// Define the fields of the TodoService struct
@@ -413,12 +443,12 @@ func TestDeleteTodo(t *testing.T) {
 	// Define the arguments for the DeleteTodo method
 	// This allows us to pass different contexts and ids for each test case
 	type args struct {
-		ctx context.Context
-		id  int64
+		ctx    context.Context
+		userId int64
+		id     int64
 	}
 
 	// Define the test cases
-
 	tests := []struct {
 		name      string
 		fields    fields
@@ -431,14 +461,21 @@ func TestDeleteTodo(t *testing.T) {
 			fields:  fields{},
 			wantErr: false,
 			args: args{
-				ctx: context.Background(),
-				id:  1,
+				ctx:    context.Background(),
+				userId: 1,
+				id:     1,
 			},
 			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
 				store := mocks.NewTodoStore(tt)
 				tt.Cleanup(func() { store.AssertExpectations(tt) })
 
-				// Set up the expected behavior of the mock store
+				store.On("Get", ta.ctx, ta.id).Return(&domain.Todo{
+					ID:     ta.id,
+					UserID: ta.userId,
+					Title:  "Test Todo",
+					Done:   false,
+				}, nil).Once()
+
 				// When Delete is called with the given context and id, return nil (no error)
 				store.On("Delete", ta.ctx, ta.id).Return(nil).Once()
 
@@ -457,6 +494,13 @@ func TestDeleteTodo(t *testing.T) {
 				store := mocks.NewTodoStore(tt)
 				tt.Cleanup(func() { store.AssertExpectations(tt) })
 
+				store.On("Get", ta.ctx, ta.id).Return(&domain.Todo{
+					ID:     ta.id,
+					UserID: ta.userId,
+					Title:  "Test Todo",
+					Done:   false,
+				}, nil).Once()
+
 				store.On("Delete", ta.ctx, ta.id).Return(errors.New("not found")).Once()
 
 				s.Store = store
@@ -474,7 +518,7 @@ func TestDeleteTodo(t *testing.T) {
 
 			tt.initMocks(t, &tt.args, s)
 
-			err := s.DeleteTodo(tt.args.ctx, tt.args.id)
+			err := s.DeleteTodo(tt.args.ctx, tt.args.userId, tt.args.id)
 
 			require.Equal(t, tt.wantErr, err != nil)
 		})

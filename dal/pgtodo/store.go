@@ -31,7 +31,7 @@ func CreateStore(db *sqlx.DB) *Store {
 }
 
 // List retrieves a list of todos from the database.
-func (s *Store) List(ctx context.Context) ([]*domain.Todo, error) {
+func (s *Store) List(ctx context.Context, userID int64) ([]*domain.Todo, error) {
 	todos := make([]*domain.Todo, 0)
 
 	// Template parameters are not safe to use directly in the query, because they can be used to inject SQL code.
@@ -46,7 +46,9 @@ func (s *Store) List(ctx context.Context) ([]*domain.Todo, error) {
 
 	// Prepare the query parameters.
 	// This is safe to use directly in the query, because it uses named parameters.
-	queryParams := map[string]any{}
+	queryParams := map[string]any{
+		"user_id": userID,
+	}
 
 	// Execute the query. You can add parameters to the query if needed instead of using nil.
 	//NamedQueryContext ✅ - Multiple rows (ListTodos, Search, etc.)
@@ -71,7 +73,7 @@ func (s *Store) List(ctx context.Context) ([]*domain.Todo, error) {
 	return todos, nil
 }
 
-func (s *Store) Create(ctx context.Context, title string) (*domain.Todo, error) {
+func (s *Store) Create(ctx context.Context, userID int64, title string, priority int64) (*domain.Todo, error) {
 	templateParams := map[string]any{}
 
 	querystr, err := pkg.PrepareQuery(s.queryTemplates[createTodoQuery], templateParams)
@@ -80,7 +82,9 @@ func (s *Store) Create(ctx context.Context, title string) (*domain.Todo, error) 
 	}
 
 	queryParams := map[string]any{
-		"title": title,
+		"user_id":  userID,
+		"title":    title,
+		"priority": priority,
 	}
 
 	// NamedQueryContext ✅ - Single row with RETURNING clause
@@ -107,8 +111,11 @@ func (s *Store) Create(ctx context.Context, title string) (*domain.Todo, error) 
 
 	// Create a new Todo instance with the retrieved ID and other fields
 	todo := &domain.Todo{
-		ID:        id,
+		ID:     id,
+		UserID: userID,
+
 		Title:     title,
+		Priority:  priority,
 		CreatedAt: createdAt,
 	}
 
@@ -150,7 +157,7 @@ func (s *Store) Get(ctx context.Context, id int64) (*domain.Todo, error) {
 	return row.ToDomain(), nil
 }
 
-func (s *Store) Update(ctx context.Context, id int64, title string, done bool) (*domain.Todo, error) {
+func (s *Store) Update(ctx context.Context, id int64, title string, done bool, priority int64) (*domain.Todo, error) {
 	templateParams := map[string]any{}
 
 	querystr, err := pkg.PrepareQuery(s.queryTemplates[updateTodoQuery], templateParams)
@@ -159,9 +166,10 @@ func (s *Store) Update(ctx context.Context, id int64, title string, done bool) (
 	}
 
 	queryParams := map[string]any{
-		"id":    id,
-		"title": title,
-		"done":  done,
+		"id":       id,
+		"title":    title,
+		"done":     done,
+		"priority": priority,
 	}
 
 	result, err := s.db.NamedExecContext(ctx, querystr, queryParams)

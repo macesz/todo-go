@@ -16,6 +16,10 @@ func (u *UserService) CreateUser(ctx context.Context, name, email, password stri
 
 	// check user email is already exists
 	existingUser, err := u.UserStore.GetUserByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+
 	if existingUser != nil {
 		return nil, fmt.Errorf("email already in use: %w", domain.ErrDuplicate)
 	}

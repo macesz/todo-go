@@ -22,6 +22,8 @@ var (
 	// ErrDuplicate is returned if a duplicate resource exists (e.g., todo title or user email).
 	ErrDuplicate = errors.New("resource already exists")
 
+	ErrTodoNotFound = errors.New("todo not found")
+
 	// User-specific errors (add more as needed)
 	ErrUserNotFound       = errors.New("user not found")
 	ErrInvalidEmail       = errors.New("invalid email")

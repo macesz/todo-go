@@ -51,8 +51,11 @@ func TestCreateUser(t *testing.T) {
 			initMocks: func(tt *testing.T, ta *args, s *UserService) {
 				store := mocks.NewUserStore(tt)
 
+				store.On("GetUserByEmail", ta.ctx, ta.email).
+					Return(nil, nil)
+
 				userMatcher := mock.MatchedBy(func(user *domain.User) bool {
-					return user.Name == ta.name && user.Email == ta.email && user.Password == ta.password
+					return user.Name == ta.name && user.Email == ta.email
 				})
 
 				store.On("CreateUser", ta.ctx, userMatcher).Return(&domain.User{
@@ -77,6 +80,9 @@ func TestCreateUser(t *testing.T) {
 			want:    nil,
 			initMocks: func(tt *testing.T, ta *args, s *UserService) {
 				store := mocks.NewUserStore(tt)
+
+				store.On("GetUserByEmail", ta.ctx, ta.email).
+					Return(nil, nil)
 
 				store.On("CreateUser", ta.ctx, mock.Anything).Return(nil, errors.New("error")).Once()
 
@@ -103,7 +109,7 @@ func TestCreateUser(t *testing.T) {
 	}
 }
 
-func TestGetTodo(t *testing.T) {
+func TestGetUser(t *testing.T) {
 	t.Parallel()
 
 	// Define the fields of the TodoService struct
@@ -199,7 +205,6 @@ func TestGetTodo(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-
 	t.Parallel()
 
 	// Define the fields of the TodoService struct
@@ -237,7 +242,7 @@ func TestDeleteUser(t *testing.T) {
 
 				// Set up the expected behavior of the mock store
 				// When Delete is called with the given context and id, return nil (no error)
-				store.On("Delete", ta.ctx, ta.id).Return(nil).Once()
+				store.On("DeleteUser", ta.ctx, ta.id).Return(nil).Once()
 
 				s.UserStore = store
 			},
@@ -254,7 +259,7 @@ func TestDeleteUser(t *testing.T) {
 				store := mocks.NewUserStore(tt)
 				tt.Cleanup(func() { store.AssertExpectations(tt) })
 
-				store.On("Delete", ta.ctx, ta.id).Return(errors.New("not found")).Once()
+				store.On("DeleteUser", ta.ctx, ta.id).Return(errors.New("not found")).Once()
 
 				s.UserStore = store
 			},
