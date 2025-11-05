@@ -1,0 +1,10 @@
+all: true
+dir: "{{.InterfaceDirRelative}}/mocks"
+structname: "{{.InterfaceName}}"
+filename: "mock_{{ .InterfaceName| snakecase}}.go"
+pkgname: mocks
+template: testify
+packages:
+  github.com/macesz/todo-go:
+    config:
+      recursive: true

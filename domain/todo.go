@@ -8,7 +8,7 @@ import (
 // Todo is a struct representing a single todo item.
 // It's like a Java class with fields, or a JS object.
 type Todo struct {
-	ID        int
+	ID        int64
 	Title     string
 	Done      bool
 	CreatedAt time.Time
@@ -19,7 +19,7 @@ type Todo struct {
 // In JS: like Todo.prototype.validate = function() { ... }
 func (t *Todo) Validate() error {
 	if len(t.Title) == 0 { // len() is like .length in JS
-		return errors.New("title is required") // errors.New is like new Error() in JS
+		return errors.New("title is required") // errors.New is like throw new Error() in JS or Java
 	}
-	return nil // nil is like null in Java/JS
+	return nil
 }
