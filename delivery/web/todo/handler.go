@@ -12,6 +12,7 @@ import (
 	chi "github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	validate "github.com/go-playground/validator/v10" // For struct validation (like Joi in JS or Hibernate Validator in Java)
+	"github.com/macesz/todo-go/delivery/web/auth"
 	"github.com/macesz/todo-go/delivery/web/utils"
 	"github.com/macesz/todo-go/domain"
 	// String conversions (like parseInt in JS)
@@ -20,7 +21,13 @@ import (
 
 // ListTodos handles GET /todos requests.
 func (h *TodoHandlers) ListTodos(w http.ResponseWriter, r *http.Request) {
-	todos, err := h.Service.ListTodos(r.Context())
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		utils.WriteJSON(w, http.StatusForbidden, domain.ErrorResponse{Error: "missing user"})
+		return
+	}
+
+	todos, err := h.Service.ListTodos(r.Context(), user.ID)
 	if err != nil {
 		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})
 		return
@@ -32,6 +39,12 @@ func (h *TodoHandlers) ListTodos(w http.ResponseWriter, r *http.Request) {
 // CreateTodo handles POST /todos requests.
 func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		utils.WriteJSON(w, http.StatusForbidden, domain.ErrorResponse{Error: "missing user"})
+		return
+	}
 
 	var reqTodo domain.CreateTodoDTO // Empty Todo struct to decode into
 
@@ -54,7 +67,7 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 
 	// Create the todo using the service
 	// If creation fails, return 400 Bad Request
-	todo, err := h.Service.CreateTodo(r.Context(), reqTodo.Title)
+	todo, err := h.Service.CreateTodo(r.Context(), user.ID, reqTodo.Title, reqTodo.Priority)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidTitle) {
 			utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
@@ -66,8 +79,10 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 
 	respTodo := domain.TodoDTO{
 		ID:        todo.ID,
+		UserID:    todo.UserID,
 		Title:     todo.Title,
 		Done:      todo.Done,
+		Priority:  todo.Priority,
 		CreatedAt: todo.CreatedAt.Format(time.RFC3339), // Format time as ISO string
 	}
 
@@ -76,24 +91,29 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 
 // GetTodo handles GET /todos/{id} requests.
 func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		utils.WriteJSON(w, http.StatusForbidden, domain.ErrorResponse{Error: "missing user"})
+		return
+	}
+
 	idr := chi.URLParam(r, "id") // Get the "id" URL parameter
 
 	// Check if id parameter exists
-
 	if idr == "" {
 		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
 		return
 	}
 
 	// Convert id string to int64
-
 	id, err := strconv.ParseInt(idr, 10, 64) // Convert id string to int
 	if err != nil {
 		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
 		return
 	}
+
 	// Get the todo from the service
-	todo, err := h.Service.GetTodo(r.Context(), id) // Get the todo from the service
+	todo, err := h.Service.GetTodo(r.Context(), user.ID, id) // Get the todo from the service
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) { // Check custom error
 			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
@@ -106,8 +126,10 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 	// Map to response DTO
 	respTodo := domain.TodoDTO{
 		ID:        todo.ID,
+		UserID:    todo.UserID,
 		Title:     todo.Title,
 		Done:      todo.Done,
+		Priority:  todo.Priority,
 		CreatedAt: todo.CreatedAt.Format(time.RFC3339), // Format time as ISO string
 	}
 
@@ -116,6 +138,12 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 
 // UpdateTodo handles PUT /todos/{id} requests.
 func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		utils.WriteJSON(w, http.StatusForbidden, domain.ErrorResponse{Error: "missing user"})
+		return
+	}
+
 	idr := chi.URLParam(r, "id") // Get the "id" URL parameter
 
 	if idr == "" {
@@ -147,7 +175,7 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call service to update (passes context for timeouts/cancellation)
-	updated, err := h.Service.UpdateTodo(r.Context(), id, todoDTO.Title, todoDTO.Done)
+	updated, err := h.Service.UpdateTodo(r.Context(), user.ID, id, todoDTO.Title, todoDTO.Done, todoDTO.Priority)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) { // Check custom error )
 			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
@@ -163,8 +191,10 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 
 	respTodo := domain.TodoDTO{
 		ID:        updated.ID,
+		UserID:    user.ID,
 		Title:     updated.Title,
 		Done:      updated.Done,
+		Priority:  updated.Priority,
 		CreatedAt: updated.CreatedAt.Format(time.RFC3339), // Format time as ISO string
 	}
 
@@ -173,8 +203,13 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 
 // DeleteTodo handles DELETE /todos/{id} requests.
 func (h *TodoHandlers) DeleteTodo(w http.ResponseWriter, r *http.Request) {
-	idr := chi.URLParam(r, "id") // Get the "id" URL parameter
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		utils.WriteJSON(w, http.StatusForbidden, domain.ErrorResponse{Error: "missing user"})
+		return
+	}
 
+	idr := chi.URLParam(r, "id") // Get the "id" URL parameter
 	if idr == "" {
 		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
 		return
@@ -186,7 +221,7 @@ func (h *TodoHandlers) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Service.DeleteTodo(r.Context(), id); err != nil {
+	if err := h.Service.DeleteTodo(r.Context(), user.ID, id); err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
 			return
