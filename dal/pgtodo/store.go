@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"text/template"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/macesz/todo-go/domain"
@@ -73,53 +72,46 @@ func (s *Store) List(ctx context.Context, userID int64) ([]*domain.Todo, error) 
 	return todos, nil
 }
 
-func (s *Store) Create(ctx context.Context, userID int64, title string, priority int64) (*domain.Todo, error) {
+func (s *Store) Create(ctx context.Context, todo *domain.Todo) error {
 	templateParams := map[string]any{}
 
 	querystr, err := pkg.PrepareQuery(s.queryTemplates[createTodoQuery], templateParams)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	queryParams := map[string]any{
-		"user_id":  userID,
-		"title":    title,
-		"priority": priority,
+		"user_id":    todo.UserID,
+		"title":      todo.Title,
+		"priority":   todo.Priority,
+		"created_at": todo.CreatedAt,
 	}
 
 	// NamedQueryContext ✅ - Single row with RETURNING clause
 	result, err := s.db.NamedQueryContext(ctx, querystr, queryParams)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer result.Close()
 
 	var (
-		id        int64
-		createdAt time.Time
+		id int64
 	)
 
 	// Scan the result into the variables
 	if result.Next() {
-		err = result.Scan(&id, &createdAt)
+		err = result.Scan(&id)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	} else {
-		return nil, errors.New("failed to retrieve inserted todo ID")
+		return errors.New("failed to retrieve inserted todo ID")
 	}
 
 	// Create a new Todo instance with the retrieved ID and other fields
-	todo := &domain.Todo{
-		ID:     id,
-		UserID: userID,
+	todo.ID = id
 
-		Title:     title,
-		Priority:  priority,
-		CreatedAt: createdAt,
-	}
-
-	return todo, nil
+	return nil
 }
 
 func (s *Store) Get(ctx context.Context, id int64) (*domain.Todo, error) {

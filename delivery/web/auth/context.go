@@ -13,7 +13,7 @@ type UserContext struct {
 }
 
 // NewUserContext - Create from JWT claims
-func NewUserContext(claims *UserClaims) *UserContext {
+func NewUserContext(claims *userClaims) *UserContext {
 	return &UserContext{
 		ID:    claims.UserID,
 		Email: claims.Email,

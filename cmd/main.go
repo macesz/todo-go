@@ -11,6 +11,7 @@ import (
 	"github.com/macesz/todo-go/dal/pgtodo"
 	"github.com/macesz/todo-go/dal/pguser"
 	"github.com/macesz/todo-go/delivery/web"
+	"github.com/macesz/todo-go/delivery/web/auth"
 	"github.com/macesz/todo-go/domain"
 	infraPG "github.com/macesz/todo-go/infra/postgres"
 	"github.com/macesz/todo-go/services/todo"
@@ -49,22 +50,36 @@ func main() {
 		panic(err)
 	}
 
+	if err := db.Ping(); err != nil {
+		panic(err)
+	}
+
 	// Create DATA STORES
 	todoStore := pgtodo.CreateStore(db)
 	userStore := pguser.CreateStore(db)
 
 	// Create SERVICES
+	// NEW: Create auth at application startup
+	tokenAuth := auth.CreateTokenAuth(cfg.JWTSecret)
 	todoService := todo.NewTodoService(todoStore) // Service with business logic
 	userService := user.NewUserService(userStore) // Service with business logic
 
+	services := &web.ServerServices{
+		Todo:      todoService,
+		User:      userService,
+		TokenAuth: tokenAuth, // ← Injected dependency
+	}
+
 	// Create WEB HANDLERS
-	handlers, err := web.CreateHandlers(ctx, &web.ServerServices{
-		Todo: todoService,
-		User: userService,
-	})
+	handlers, err := web.CreateHandlers(ctx, services)
 	if err != nil {
 		panic(err)
 	}
 
-	web.StartServer(ctx, cfg, handlers) // Start the web server
+	// Pass services to both handlers AND server
+	web.StartServer(ctx, cfg, services, handlers) // Start the web server
 }
+
+
+// This follows Dependency Inversion Principle - high-level modules (server) depend on abstractions (services struct) 
+// rather than creating dependencies internally.

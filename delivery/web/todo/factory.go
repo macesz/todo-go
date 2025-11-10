@@ -3,12 +3,14 @@ package todo
 // TodoHandlers groups HTTP handler functions.
 // Like a Java controller class or JS route handler object.
 type TodoHandlers struct {
-	Service TodoService
+	todoService TodoService
+	userService UserService
 }
 
 // NewHandlers creates a new Handlers instance.
-func NewHandlers(service TodoService) *TodoHandlers {
+func NewHandlers(todoService TodoService, userService UserService) *TodoHandlers {
 	return &TodoHandlers{
-		Service: service,
+		todoService: todoService,
+		userService: userService,
 	}
 }

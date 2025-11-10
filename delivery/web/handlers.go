@@ -5,13 +5,15 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/go-chi/jwtauth/v5"
 	"github.com/macesz/todo-go/delivery/web/todo"
 	"github.com/macesz/todo-go/delivery/web/user"
 )
 
 type ServerServices struct {
-	Todo todo.TodoService
-	User user.UserService
+	Todo      todo.TodoService
+	User      user.UserService
+	TokenAuth *jwtauth.JWTAuth
 }
 
 func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
@@ -29,9 +31,8 @@ type Handlers struct {
 }
 
 func CreateHandlers(ctx context.Context, services *ServerServices) (*Handlers, error) {
-
-	todoHandler := todo.NewHandlers(services.Todo) // Create handlers with the service
-	userHandler := user.NewHandlers(services.User) // Create handlers with the service
+	todoHandler := todo.NewHandlers(services.Todo, services.User)      // Create handlers with the service
+	userHandler := user.NewHandlers(services.User, services.TokenAuth) // Create handlers with the service
 
 	handlers := &Handlers{
 		Todo: todoHandler,

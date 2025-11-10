@@ -13,14 +13,10 @@ import (
 )
 
 // StartServer initializes the router, sets up routes, and starts the HTTP server.
-// It takes a TodoService to handle business logic.
-// Like setting up an Express app or Java Servlet.
-func StartServer(ctx context.Context, conf domain.Config, handlers *Handlers) {
+// Accepts services parameter (dependency injection)
+func StartServer(ctx context.Context, conf domain.Config, services *ServerServices, handlers *Handlers) {
 	// Chi router: like Express app or Java Servlet
 	r := chi.NewRouter()
-
-	// JWT Auth setup with HS256 and secret from config
-	tokenAuth := jwtauth.New("HS256", []byte(conf.JWTSecret), nil)
 
 	// Chi middlewares: small, composable functions that wrap handlers.
 	r.Use(middleware.RequestID) // Adds a unique request ID in the context
@@ -31,12 +27,12 @@ func StartServer(ctx context.Context, conf domain.Config, handlers *Handlers) {
 	// ============================================
 	// PUBLIC ROUTES (No authentication required)
 	// ============================================
-	r.Group(func(r chi.Router) {
-		// r.Get("/", indexPage)
-		// r.Get("/{AssetUrl}", GetAsset)
-		r.Post("/user", handlers.User.CreateUser) // Create a new user
-		r.Post("/login", handlers.User.Login)     // Login a user
-	})
+	// r.Group(func(r chi.Router) {
+	// r.Get("/", indexPage)
+	// r.Get("/{AssetUrl}", GetAsset)
+	r.Post("/user", handlers.User.CreateUser) // Create a new user
+	r.Post("/login", handlers.User.Login)     // Login a user
+	// })
 
 	// ============================================
 	// PROTECTED ROUTES (JWT authentication required)
@@ -45,7 +41,8 @@ func StartServer(ctx context.Context, conf domain.Config, handlers *Handlers) {
 		// r.Use(AuthMiddleware)
 
 		// Seek, verify and validate JWT tokens
-		r.Use(jwtauth.Verifier(tokenAuth))
+		// Using the injected TokenAuth from services
+		r.Use(jwtauth.Verifier(services.TokenAuth))
 		r.Use(middlewares.Authenticator)
 		r.Use(middlewares.UserContext)
 
@@ -59,8 +56,9 @@ func StartServer(ctx context.Context, conf domain.Config, handlers *Handlers) {
 			r.Delete("/{id}", handlers.Todo.DeleteTodo) // Delete a todo by ID
 		})
 
-		r.Route("/user", func(r chi.Router) {
-			r.Get("/", handlers.User.GetUser)
+		// changed to /users from /user to follow REST conventions, as we need separation for private and protected routes
+		r.Route("/users", func(r chi.Router) {
+			r.Get("/{id}", handlers.User.GetUser)
 			r.Delete("/{id}", handlers.User.DeleteUser) // Delete a user by ID
 		})
 	})

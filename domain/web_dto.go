@@ -35,7 +35,7 @@ type UserResponseDTO struct {
 }
 
 type CreateUserDTO struct {
-	Name     string `json:"name" validate:"required,min=5,max=255"`
+	Name     string `json:"name" validate:"required,min=2,max=255"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=6,max=255,containsany=0123456789,containsany=ABCDEFGHIJKLMNOPQRSTUVWXYZ"`
 }

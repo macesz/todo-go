@@ -77,7 +77,7 @@ func TestListTodos(t *testing.T) {
 				Return(tt.mockReturn, tt.mockError).
 				Once()
 
-			handlers := &TodoHandlers{Service: mockService}
+			handlers := &TodoHandlers{todoService: mockService}
 
 			req, err := http.NewRequest(http.MethodGet, "/todos", nil)
 			require.NoError(t, err)
@@ -147,7 +147,7 @@ func TestCreateTodo(t *testing.T) {
 					Once()
 			}
 
-			handlers := &TodoHandlers{Service: mockService}
+			handlers := &TodoHandlers{todoService: mockService}
 
 			req, err := http.NewRequest(http.MethodPost, "/todos", strings.NewReader(tt.inputBody))
 			require.NoError(t, err)
@@ -216,7 +216,7 @@ func TestGetTodo(t *testing.T) {
 					Once()
 			}
 
-			handler := &TodoHandlers{Service: mockService}
+			handler := &TodoHandlers{todoService: mockService}
 
 			req, err := http.NewRequest(http.MethodGet, "/todos/"+tt.urlParam, nil)
 			require.NoError(t, err)
@@ -303,7 +303,7 @@ func TestUpdateTodo(t *testing.T) {
 					Once()
 			}
 
-			handlers := &TodoHandlers{Service: mockService}
+			handlers := &TodoHandlers{todoService: mockService}
 
 			req, err := http.NewRequest(http.MethodPut, "/todos/"+tt.urlParam, strings.NewReader(tt.inputBody))
 			require.NoError(t, err)
@@ -373,7 +373,7 @@ func TestDeleteTodo(t *testing.T) {
 					Once()
 			}
 
-			handlers := &TodoHandlers{Service: mockService}
+			handlers := &TodoHandlers{todoService: mockService}
 
 			req, err := http.NewRequest(http.MethodDelete, "/todos/"+tt.urlParam, nil)
 			require.NoError(t, err)

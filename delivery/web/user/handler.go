@@ -117,10 +117,11 @@ func (h *UserHandlers) Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.Service.Login(r.Context(), reqLogin.Email, reqLogin.Password)
 	if err != nil {
-		if errors.Is(err, domain.ErrInvalidCredentials) {
+		if errors.Is(err, domain.ErrInvalidCredentials) || errors.Is(err, domain.ErrUserNotFound) {
 			utils.WriteJSON(w, http.StatusUnauthorized, domain.ErrorResponse{Error: err.Error()})
 			return
 		}
+
 		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})
 		return
 	}

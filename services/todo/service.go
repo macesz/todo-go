@@ -2,6 +2,7 @@ package todo
 
 import (
 	"context"
+	"time"
 
 	"github.com/macesz/todo-go/domain"
 )
@@ -21,7 +22,19 @@ func (s *TodoService) ListTodos(ctx context.Context, userID int64) ([]*domain.To
 // Here we could add more business logic if needed
 // For example, checking for duplicates, logging, etc.
 func (s *TodoService) CreateTodo(ctx context.Context, userID int64, title string, priority int64) (*domain.Todo, error) {
-	return s.Store.Create(ctx, userID, title, priority) // Delegate to the store
+	createdAt := time.Now()
+
+	todo := &domain.Todo{
+		UserID:    userID,
+		Title:     title,
+		Done:      false,
+		Priority:  priority,
+		CreatedAt: createdAt,
+	}
+
+	err := s.Store.Create(ctx, todo) // Delegate to the store
+
+	return todo, err
 }
 
 // GetTodo retrieves a todo by ID
