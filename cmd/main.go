@@ -4,13 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 
-	// "github.com/macesz/todo-go/dal/infiletodo"
 	"github.com/jmoiron/sqlx"
+
 	"github.com/macesz/todo-go/dal/pgtodo"
 	"github.com/macesz/todo-go/dal/pguser"
 	"github.com/macesz/todo-go/delivery/web"
 	"github.com/macesz/todo-go/domain"
+	infraPG "github.com/macesz/todo-go/infra/postgres"
 	"github.com/macesz/todo-go/services/todo"
 	"github.com/macesz/todo-go/services/user"
 )
@@ -34,6 +36,13 @@ func main() {
 		cfg.DBPassword,
 		cfg.DBAddr,
 		cfg.DBName)
+
+	// check arg contains --migrate
+	if slices.Contains(os.Args, "migrate") {
+		if err := infraPG.MigrateDb(cfg.DBUser, cfg.DBPassword, cfg.DBAddr, cfg.DBName); err != nil {
+			panic(err)
+		}
+	}
 
 	db, err := sqlx.Connect("postgres", dsn)
 	if err != nil {
