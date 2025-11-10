@@ -43,10 +43,7 @@ func (s *TodoService) GetTodo(ctx context.Context, userID int64, id int64) (*dom
 }
 
 // UpdateTodo updates an existing todo by ID
-// Returns the updated Todo or an error
-// Like a service method in Java or JS
-// Here we could add more business logic if needed
-// For example, validation, logging, etc.
+
 func (s *TodoService) UpdateTodo(ctx context.Context, userID int64, id int64, title string, done bool, priority int64) (*domain.Todo, error) {
 	if _, err := s.GetTodo(ctx, userID, id); err != nil {
 		return nil, err
@@ -56,10 +53,7 @@ func (s *TodoService) UpdateTodo(ctx context.Context, userID int64, id int64, ti
 }
 
 // DeleteTodo deletes a todo by ID
-// Returns a boolean indicating if the deletion was successful
-// Like a service method in Java or JS
-// Here we could add more business logic if needed
-// For example, logging, cascading deletes, etc.
+
 func (s *TodoService) DeleteTodo(ctx context.Context, userID int64, id int64) error {
 	if _, err := s.GetTodo(ctx, userID, id); err != nil {
 		return err
