@@ -143,10 +143,6 @@ func (s *Store) GetUserByEmail(ctx context.Context, email string) (*domain.User,
 
 // Login user
 func (s *Store) Login(ctx context.Context, email, password string) (*domain.User, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, fmt.Errorf("failed to hash password: %w", err)
-	}
 
 	querystr, err := pkg.PrepareQuery(s.queryTemplates[loginUserQuery], nil)
 	if err != nil {
@@ -154,8 +150,8 @@ func (s *Store) Login(ctx context.Context, email, password string) (*domain.User
 	}
 
 	queryParams := map[string]any{
-		"email":    email,
-		"password": string(hashedPassword),
+		"email": email,
+		// "password": string(hashedPassword),
 	}
 
 	result, err := s.db.NamedQueryContext(ctx, querystr, queryParams)
@@ -167,13 +163,19 @@ func (s *Store) Login(ctx context.Context, email, password string) (*domain.User
 
 	var row rowDTO
 
-	if result.Next() {
-		err = result.StructScan(&row)
-		if err != nil {
-			return nil, err
-		}
-	} else {
+	if !result.Next() {
 		return nil, domain.ErrUserNotFound
+	}
+
+	err = result.StructScan(&row)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(row.Password), []byte(password))
+	if err != nil {
+		// Password doesn't match
+		return nil, domain.ErrInvalidCredentials // or domain.ErrUserNotFound for security
 	}
 
 	return row.ToDomain(), nil

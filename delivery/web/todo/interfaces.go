@@ -13,3 +13,7 @@ type TodoService interface {
 	UpdateTodo(ctx context.Context, userID int64, id int64, title string, done bool, priority int64) (*domain.Todo, error)
 	DeleteTodo(ctx context.Context, userID int64, id int64) error
 }
+
+type UserService interface {
+	GetUser(ctx context.Context, id int64) (*domain.User, error)
+}

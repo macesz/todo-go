@@ -1,3 +1,3 @@
-INSERT INTO todos (user_id, title, priority)
-VALUES (:user_id, :title, :priority)
-RETURNING id, created_at;
+INSERT INTO todos (user_id, title, priority, created_at)
+VALUES (:user_id, :title, :priority, :created_at)
+RETURNING id;

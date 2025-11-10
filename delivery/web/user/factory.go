@@ -10,8 +10,9 @@ type UserHandlers struct {
 }
 
 // NewHandlers creates a new Handlers instance.
-func NewHandlers(service UserService) *UserHandlers {
+func NewHandlers(service UserService, tokenAuth *jwtauth.JWTAuth) *UserHandlers {
 	return &UserHandlers{
-		Service: service,
+		Service:   service,
+		TokenAuth: tokenAuth,
 	}
 }

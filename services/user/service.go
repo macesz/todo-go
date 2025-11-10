@@ -25,8 +25,9 @@ func (u *UserService) CreateUser(ctx context.Context, name, email, password stri
 	}
 
 	user := &domain.User{
-		Name:  name,
-		Email: email,
+		Name:     name,
+		Email:    email,
+		Password: password,
 	}
 
 	// Call the UserStore to save the user

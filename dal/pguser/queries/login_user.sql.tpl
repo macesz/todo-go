@@ -1,2 +1,2 @@
-Select FROM users
-WHERE email = :email AND password = :password;
+SELECT * FROM users
+WHERE email = :email;

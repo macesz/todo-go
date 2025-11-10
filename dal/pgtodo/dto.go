@@ -8,7 +8,7 @@ import (
 
 type rowDTO struct {
 	ID        int64     `db:"id"`
-	UserID    int64     `db:"userId"`
+	UserID    int64     `db:"user_id"`
 	Title     string    `db:"title"`
 	Done      bool      `db:"done"`
 	Priority  int64     `db:"priority"`

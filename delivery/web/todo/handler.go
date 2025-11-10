@@ -27,7 +27,7 @@ func (h *TodoHandlers) ListTodos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	todos, err := h.Service.ListTodos(r.Context(), user.ID)
+	todos, err := h.todoService.ListTodos(r.Context(), user.ID)
 	if err != nil {
 		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})
 		return
@@ -40,8 +40,16 @@ func (h *TodoHandlers) ListTodos(w http.ResponseWriter, r *http.Request) {
 func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	user, ok := auth.UserFromContext(r.Context())
+	ctx := r.Context()
+
+	userCtx, ok := auth.UserFromContext(ctx)
 	if !ok {
+		utils.WriteJSON(w, http.StatusForbidden, domain.ErrorResponse{Error: "missing user"})
+		return
+	}
+
+	user, err := h.userService.GetUser(ctx, userCtx.ID)
+	if err != nil || user == nil {
 		utils.WriteJSON(w, http.StatusForbidden, domain.ErrorResponse{Error: "missing user"})
 		return
 	}
@@ -67,7 +75,7 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 
 	// Create the todo using the service
 	// If creation fails, return 400 Bad Request
-	todo, err := h.Service.CreateTodo(r.Context(), user.ID, reqTodo.Title, reqTodo.Priority)
+	todo, err := h.todoService.CreateTodo(r.Context(), user.ID, reqTodo.Title, reqTodo.Priority)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidTitle) {
 			utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
@@ -113,7 +121,7 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the todo from the service
-	todo, err := h.Service.GetTodo(r.Context(), user.ID, id) // Get the todo from the service
+	todo, err := h.todoService.GetTodo(r.Context(), user.ID, id) // Get the todo from the service
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) { // Check custom error
 			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
@@ -175,7 +183,7 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call service to update (passes context for timeouts/cancellation)
-	updated, err := h.Service.UpdateTodo(r.Context(), user.ID, id, todoDTO.Title, todoDTO.Done, todoDTO.Priority)
+	updated, err := h.todoService.UpdateTodo(r.Context(), user.ID, id, todoDTO.Title, todoDTO.Done, todoDTO.Priority)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) { // Check custom error )
 			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
@@ -221,7 +229,7 @@ func (h *TodoHandlers) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Service.DeleteTodo(r.Context(), user.ID, id); err != nil {
+	if err := h.todoService.DeleteTodo(r.Context(), user.ID, id); err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
 			return
