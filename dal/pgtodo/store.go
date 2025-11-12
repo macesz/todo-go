@@ -2,6 +2,7 @@ package pgtodo
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"text/template"
 
@@ -61,7 +62,7 @@ func (s *Store) List(ctx context.Context, userID int64) ([]*domain.Todo, error) 
 	var row rowDTO
 
 	for rows.Next() {
-		err := rows.StructScan(&row) // Fixed: Added & (pointer) and error handling
+		err := rows.StructScan(&row)
 		if err != nil {
 			return nil, err
 		}
@@ -143,7 +144,8 @@ func (s *Store) Get(ctx context.Context, id int64) (*domain.Todo, error) {
 			return nil, err
 		}
 	} else {
-		return nil, errors.New("todo not found")
+		// Return sql.ErrNoRows so the service layer can handle it properly
+		return nil, sql.ErrNoRows
 	}
 
 	return row.ToDomain(), nil
@@ -176,7 +178,8 @@ func (s *Store) Update(ctx context.Context, id int64, title string, done bool, p
 	}
 
 	if rowsAffected == 0 {
-		return nil, errors.New("todo not found")
+		// Return sql.ErrNoRows so the service layer can handle it properly
+		return nil, sql.ErrNoRows
 	}
 
 	return s.Get(ctx, id)
@@ -206,7 +209,8 @@ func (s *Store) Delete(ctx context.Context, id int64) error {
 	}
 
 	if rowsAffected == 0 {
-		return errors.New("todo not found")
+		// Return sql.ErrNoRows so the service layer can handle it properly
+		return sql.ErrNoRows
 	}
 
 	return nil

@@ -11,7 +11,7 @@ var (
 	ErrNotFound = errors.New("todo not found")
 
 	// ErrInvalidTitle is returned for invalid todo titles (e.g., empty or too long).
-	ErrInvalidTitle = errors.New("title is required and must be between 1 and 255 characters")
+	ErrInvalidTitle = errors.New("title is required")
 
 	// ErrInvalidInput is a general error for validation failures.
 	ErrInvalidInput = errors.New("invalid input")

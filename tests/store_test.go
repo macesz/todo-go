@@ -1,300 +1,266 @@
 package tests
 
-// import (
-// 	"context"
-// 	"errors"
-// 	"fmt"
-// 	"log"
-// 	"path/filepath"
-// 	"runtime"
-// 	"testing"
-// 	"time"
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 
-// 	"github.com/golang-migrate/migrate"
-// 	_ "github.com/golang-migrate/migrate/database/postgres" // used by migrator
-// 	_ "github.com/golang-migrate/migrate/source/file"       // used by migrator
-// 	"github.com/jmoiron/sqlx"
-// 	"github.com/macesz/todo-go/dal/pgtodo"
-// 	"github.com/macesz/todo-go/domain"
-// 	"github.com/testcontainers/testcontainers-go"
-// 	"github.com/testcontainers/testcontainers-go/wait"
-// )
+	"github.com/go-chi/chi/v5"
+	"github.com/macesz/todo-go/dal/pgtodo"
+	"github.com/macesz/todo-go/dal/pguser"
+	"github.com/macesz/todo-go/delivery/web/todo"
+	"github.com/macesz/todo-go/domain"
+	todoservice "github.com/macesz/todo-go/services/todo"
+	userservice "github.com/macesz/todo-go/services/user"
+	"github.com/macesz/todo-go/tests/testutils"
+	"github.com/stretchr/testify/require"
+)
 
-// const (
-// 	DbName = "test_db"
-// 	DbUser = "test_user"
-// 	DbPass = "test_password"
-// )
+// setupTestServer creates a real server with all dependencies
+func setupTestServer(t *testing.T) (*chi.Mux, *testutils.TestContainer, int64) {
+	t.Helper()
 
-// func SetUpTestDB(ctx context.Context) (*sqlx.DB, error) {
-// 	// create postgres container
-// 	var env = map[string]string{
-// 		"POSTGRES_PASSWORD": DbPass,
-// 		"POSTGRES_USER":     DbUser,
-// 		"POSTGRES_DB":       DbName,
-// 	}
-// 	var port = "5432/tcp"
+	// Setup database
+	tc := testutils.SetupTestDB(t)
 
-// 	req := testcontainers.GenericContainerRequest{
-// 		ContainerRequest: testcontainers.ContainerRequest{
-// 			Image:        "postgres:14-alpine",
-// 			ExposedPorts: []string{port},
-// 			Env:          env,
-// 			WaitingFor:   wait.ForLog("database system is ready to accept connections"),
-// 		},
-// 		Started: true,
-// 	}
+	// Create stores
+	todoStore := pgtodo.CreateStore(tc.DB)
+	userStore := pguser.CreateStore(tc.DB)
 
-// 	container, err := testcontainers.GenericContainer(ctx, req)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to start container: %v", err)
-// 	}
+	// Create services using constructors
+	todoSvc := todoservice.NewTodoService(todoStore)
+	userSvc := userservice.NewUserService(userStore)
 
-// 	p, err := container.MappedPort(ctx, "5432")
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to get container external port: %v", err)
-// 	}
+	// Create test user
+	testUser, err := userSvc.CreateUser(t.Context(), "Test User", "test@example.com", "password123")
 
-// 	log.Println("postgres container ready and running at port: ", p.Port())
+	require.NoError(t, err)
 
-// 	time.Sleep(time.Second)
+	// Create handlers using constructor (add this if you don't have it)
+	todoHandlers := todo.NewHandlers(todoSvc, userSvc)
 
-// 	dbAddr := fmt.Sprintf("localhost:%s", p.Port())
+	// Setup router
+	r := chi.NewRouter()
+	r.Get("/todos", todoHandlers.ListTodos)
+	r.Post("/todos", todoHandlers.CreateTodo)
+	r.Get("/todos/{id}", todoHandlers.GetTodo)
+	r.Put("/todos/{id}", todoHandlers.UpdateTodo)
+	r.Delete("/todos/{id}", todoHandlers.DeleteTodo)
 
-// 	// execute migration
-// 	migrateErr := migrateDb(dbAddr)
-// 	if migrateErr != nil {
-// 		return nil, fmt.Errorf("failed to migrate database: %v", migrateErr)
-// 	}
+	return r, tc, testUser.ID
+}
+func TestTodoHandlers_Integration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 
-// 	// Connect directly with sqlx - MUCH SIMPLER!
-// 	dsn := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable", DbUser, DbPass, dbAddr, DbName)
+	t.Run("Full CRUD Lifecycle", func(t *testing.T) {
+		router, tc, userID := setupTestServer(t)
+		defer testutils.CleanupDB(t, tc.DB)
 
-// 	db, err := sqlx.Connect("postgres", dsn)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+		// 1. List todos (should be empty)
+		t.Run("List empty todos", func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/todos", nil)
+			req = testutils.WithUserContext(req, userID)
+			rr := httptest.NewRecorder()
 
-// 	return db, nil
-// }
+			router.ServeHTTP(rr, req)
 
-// func migrateDb(dbAddr string) error {
-// 	// get location of test
-// 	_, path, _, ok := runtime.Caller(0)
-// 	if !ok {
-// 		return fmt.Errorf("failed to get path")
-// 	}
+			require.Equal(t, http.StatusOK, rr.Code)
 
-// 	pathToMigrationFiles := filepath.Join(filepath.Dir(path), "..", "infra", "postgres", "migrations")
+			var todos []domain.TodoDTO
+			err := json.NewDecoder(rr.Body).Decode(&todos)
+			require.NoError(t, err)
+			require.Empty(t, todos)
+		})
 
-// 	databaseURL := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable", DbUser, DbPass, dbAddr, DbName)
+		// 2. Create a todo
+		var createdTodo domain.TodoDTO
+		t.Run("Create todo", func(t *testing.T) {
+			payload := domain.CreateTodoDTO{
+				Title:    "Integration Test Todo",
+				Priority: 3,
+			}
+			body, _ := json.Marshal(payload)
 
-// 	m, err := migrate.New(fmt.Sprintf("file:%s", pathToMigrationFiles), databaseURL)
-// 	if err != nil {
-// 		return err
-// 	}
+			req := httptest.NewRequest(http.MethodPost, "/todos", bytes.NewReader(body))
+			req = testutils.WithUserContext(req, userID)
+			req.Header.Set("Content-Type", "application/json")
+			rr := httptest.NewRecorder()
 
-// 	defer m.Close()
+			router.ServeHTTP(rr, req)
 
-// 	err = m.Up()
-// 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-// 		return err
-// 	}
+			require.Equal(t, http.StatusCreated, rr.Code)
 
-// 	log.Println("migration done")
+			err := json.NewDecoder(rr.Body).Decode(&createdTodo)
+			require.NoError(t, err)
+			require.NotZero(t, createdTodo.ID)
+			require.Equal(t, "Integration Test Todo", createdTodo.Title)
+			require.Equal(t, int64(3), createdTodo.Priority)
+			require.False(t, createdTodo.Done)
+		})
 
-// 	return nil
-// }
+		// 3. Get the created todo
+		t.Run("Get todo by ID", func(t *testing.T) {
+			url := fmt.Sprintf("/todos/%d", createdTodo.ID)
+			req := httptest.NewRequest(http.MethodGet, url, nil)
+			req = testutils.WithUserContext(req, userID)
+			rr := httptest.NewRecorder()
 
-// func TestPgTodoStore(t *testing.T) {
-// 	// ctx := t.Context()
+			router.ServeHTTP(rr, req)
 
-// 	// db, err := SetUpTestDB(ctx)
-// 	// if err != nil {
-// 	// 	t.Fatal(err)
-// 	// }
+			require.Equal(t, http.StatusOK, rr.Code)
 
-// 	// store := pgtodo.CreateStore(db)
+			var fetchedTodo domain.TodoDTO
+			err := json.NewDecoder(rr.Body).Decode(&fetchedTodo)
+			require.NoError(t, err)
+			require.Equal(t, createdTodo.ID, fetchedTodo.ID)
+			require.Equal(t, createdTodo.Title, fetchedTodo.Title)
+		})
 
-// 	tests := []struct {
-// 		name string
-// 		exec func(*testing.T)
-// 	}{
-// 		{
-// 			name: "create 3 todos",
-// 			exec: func(t *testing.T) {
-// 				store, db := setupTestStore(t)
+		// 4. Update the todo
+		t.Run("Update todo", func(t *testing.T) {
+			payload := domain.UpdateTodoDTO{
+				Title:    "Updated Integration Test",
+				Done:     true,
+				Priority: 5,
+			}
+			body, _ := json.Marshal(payload)
 
-// 				defer db.Close()
+			url := fmt.Sprintf("/todos/%d", createdTodo.ID)
+			req := httptest.NewRequest(http.MethodPut, url, bytes.NewReader(body))
+			req = testutils.WithUserContext(req, userID)
+			req.Header.Set("Content-Type", "application/json")
+			rr := httptest.NewRecorder()
 
-// 				ctx := t.Context()
+			router.ServeHTTP(rr, req)
 
-// 				for i := range int64(3) {
-// 					ct, err := store.Create(ctx, fmt.Sprintf("test%d", i+1))
-// 					if err != nil {
-// 						t.Error(err)
-// 					}
+			require.Equal(t, http.StatusOK, rr.Code)
 
-// 					if ct.ID != i+1 {
-// 						t.Errorf("expected id to be %d, got %d", i+1, ct.ID)
-// 					}
+			var updatedTodo domain.TodoDTO
+			err := json.NewDecoder(rr.Body).Decode(&updatedTodo)
+			require.NoError(t, err)
+			require.Equal(t, "Updated Integration Test", updatedTodo.Title)
+			require.True(t, updatedTodo.Done)
+			require.Equal(t, int64(5), updatedTodo.Priority)
+		})
 
-// 					if ct.Title != fmt.Sprintf("test%d", i+1) {
-// 						t.Errorf("expected title to be 'test%d', got %s", i+1, ct.Title)
-// 					}
+		// 5. List todos (should have one)
+		t.Run("List todos after create", func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/todos", nil)
+			req = testutils.WithUserContext(req, userID)
+			rr := httptest.NewRecorder()
 
-// 					if ct.Done != false {
-// 						t.Errorf("expected completed to be false, got %t", ct.Done)
-// 					}
-// 				}
+			router.ServeHTTP(rr, req)
 
-// 			},
-// 		},
-// 		{
-// 			name: "ListTodo",
-// 			exec: func(t *testing.T) {
-// 				store, db := setupTestStore(t)
-// 				defer db.Close()
+			require.Equal(t, http.StatusOK, rr.Code)
 
-// 				// Create sample data for this specific test
-// 				createSampleTodos(t, store, 3)
+			var todos []domain.TodoDTO
+			err := json.NewDecoder(rr.Body).Decode(&todos)
+			require.NoError(t, err)
+			require.Len(t, todos, 1)
+			require.Equal(t, "Updated Integration Test", todos[0].Title)
+		})
 
-// 				ctx := t.Context()
+		// 6. Delete the todo
+		t.Run("Delete todo", func(t *testing.T) {
+			url := fmt.Sprintf("/todos/%d", createdTodo.ID)
+			req := httptest.NewRequest(http.MethodDelete, url, nil)
+			req = testutils.WithUserContext(req, userID)
+			rr := httptest.NewRecorder()
 
-// 				todos, err := store.List(ctx)
-// 				if err != nil {
-// 					t.Error(err)
-// 				}
+			router.ServeHTTP(rr, req)
 
-// 				if len(todos) != 3 {
-// 					t.Errorf("expected 3 todos, got %d", len(todos))
-// 				}
-// 			},
-// 		},
-// 		{
-// 			name: "GetTodo",
-// 			exec: func(t *testing.T) {
-// 				store, db := setupTestStore(t)
-// 				defer db.Close()
+			require.Equal(t, http.StatusNoContent, rr.Code)
+		})
 
-// 				// Create sample data for this specific test
-// 				createSampleTodos(t, store, 3)
+		// 7. Verify deletion
+		t.Run("Get deleted todo returns 404", func(t *testing.T) {
+			url := fmt.Sprintf("/todos/%d", createdTodo.ID)
+			req := httptest.NewRequest(http.MethodGet, url, nil)
+			req = testutils.WithUserContext(req, userID)
+			rr := httptest.NewRecorder()
 
-// 				ctx := t.Context()
+			router.ServeHTTP(rr, req)
 
-// 				todo, err := store.Get(ctx, 1)
-// 				if err != nil {
-// 					t.Error(err)
-// 				}
+			require.Equal(t, http.StatusNotFound, rr.Code)
+		})
+	})
 
-// 				if todo.ID != 1 {
-// 					t.Errorf("expected id to be 1, got %d", todo.ID)
-// 				}
+	t.Run("User Isolation", func(t *testing.T) {
+		router, tc, user1ID := setupTestServer(t)
+		defer testutils.CleanupDB(t, tc.DB)
 
-// 				if todo.Title != "test1" {
-// 					t.Errorf("expected title to be 'test1', got %s", todo.Title)
-// 				}
-// 			},
-// 		},
-// 		{
-// 			name: "UpdateTodo",
-// 			exec: func(t *testing.T) {
-// 				store, db := setupTestStore(t)
-// 				defer db.Close()
+		ctx := context.Background()
 
-// 				// Create sample data for this specific test
-// 				createSampleTodos(t, store, 3)
+		// Create second user
+		userStore := pguser.CreateStore(tc.DB)
+		userSvc := userservice.NewUserService(userStore)
+		user2, err := userSvc.CreateUser(ctx, "Test User 2", "test2@example.com", "password123")
+		require.NoError(t, err)
+		user2ID := user2.ID
 
-// 				ctx := t.Context()
+		// User 1 creates a todo
+		payload := domain.CreateTodoDTO{Title: "User 1 Todo", Priority: 3}
+		body, _ := json.Marshal(payload)
+		req := httptest.NewRequest(http.MethodPost, "/todos", bytes.NewReader(body))
+		req = testutils.WithUserContext(req, user1ID)
+		req.Header.Set("Content-Type", "application/json")
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusCreated, rr.Code)
 
-// 				var todoId int64
-// 				todoId = 1
-// 				todo, err := store.Get(ctx, todoId)
-// 				if err != nil {
-// 					t.Error(err)
-// 				}
+		var user1Todo domain.TodoDTO
+		json.NewDecoder(rr.Body).Decode(&user1Todo)
 
-// 				todo.Title = "test1 updated"
-// 				todo.Done = true
+		// User 2 tries to access User 1's todo - should fail
+		t.Run("User 2 cannot access User 1 todo", func(t *testing.T) {
+			url := fmt.Sprintf("/todos/%d", user1Todo.ID)
+			req := httptest.NewRequest(http.MethodGet, url, nil)
+			req = testutils.WithUserContext(req, user2ID)
+			rr := httptest.NewRecorder()
 
-// 				todo, err = store.Update(ctx, todoId, todo.Title, todo.Done)
-// 				if err != nil {
-// 					t.Error(err)
-// 				}
+			router.ServeHTTP(rr, req)
 
-// 				todo, err = store.Get(ctx, 1)
-// 				if err != nil {
-// 					t.Error(err)
-// 				}
+			require.Equal(t, http.StatusNotFound, rr.Code)
+		})
 
-// 				if todo.Title != "test1 updated" {
-// 					t.Errorf("expected title to be 'test1 updated', got %s", todo.Title)
-// 				}
+		// User 2 lists todos - should be empty
+		t.Run("User 2 sees only their todos", func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/todos", nil)
+			req = testutils.WithUserContext(req, user2ID)
+			rr := httptest.NewRecorder()
 
-// 				if todo.Done != true {
-// 					t.Errorf("expected completed to be true, got %t", todo.Done)
-// 				}
-// 			},
-// 		},
-// 		{
-// 			name: "DeleteTodo",
-// 			exec: func(t *testing.T) {
-// 				store, db := setupTestStore(t)
-// 				defer db.Close()
+			router.ServeHTTP(rr, req)
 
-// 				// Create sample data for this specific test
-// 				createSampleTodos(t, store, 3)
+			require.Equal(t, http.StatusOK, rr.Code)
 
-// 				ctx := t.Context()
+			var todos []domain.TodoDTO
+			json.NewDecoder(rr.Body).Decode(&todos)
+			require.Empty(t, todos)
+		})
+	})
 
-// 				err := store.Delete(ctx, 1)
-// 				if err != nil {
-// 					t.Error(err)
-// 				}
+	t.Run("Validation Errors", func(t *testing.T) {
+		router, tc, userID := setupTestServer(t)
+		defer testutils.CleanupDB(t, tc.DB)
 
-// 				todo, err := store.Get(ctx, 1)
-// 				if err == nil {
-// 					t.Error(fmt.Errorf("expected error, got nil"))
-// 				}
+		t.Run("Create with empty title", func(t *testing.T) {
+			payload := domain.CreateTodoDTO{Title: "", Priority: 3}
+			body, _ := json.Marshal(payload)
 
-// 				if todo != nil {
-// 					t.Errorf("expected todo to be nil, got %v", todo)
-// 				}
-// 			},
-// 		},
-// 	}
+			req := httptest.NewRequest(http.MethodPost, "/todos", bytes.NewReader(body))
+			req = testutils.WithUserContext(req, userID)
+			req.Header.Set("Content-Type", "application/json")
+			rr := httptest.NewRecorder()
 
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			tt.exec(t)
-// 		})
-// 	}
-// }
+			router.ServeHTTP(rr, req)
 
-// func setupTestStore(t *testing.T) (*pgtodo.Store, *sqlx.DB) {
-// 	ctx := t.Context()
-
-// 	db, err := SetUpTestDB(ctx)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	store := pgtodo.CreateStore(db)
-// 	return store, db
-// }
-
-// func createSampleTodos(t *testing.T, store *pgtodo.Store, count int) []*domain.Todo {
-
-// 	ctx := t.Context()
-// 	var todos []*domain.Todo
-
-// 	for i := range int64(count) {
-// 		todo, err := store.Create(ctx, fmt.Sprintf("test%d", i+1))
-// 		if err != nil {
-// 			t.Error(err)
-// 		}
-// 		todos = append(todos, todo)
-// 	}
-
-// 	return todos
-// }
+			require.Equal(t, http.StatusBadRequest, rr.Code)
+		})
+	})
+}

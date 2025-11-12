@@ -123,6 +123,10 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 	// Get the todo from the service
 	todo, err := h.todoService.GetTodo(r.Context(), user.ID, id) // Get the todo from the service
 	if err != nil {
+		// DEBUG: Print the actual error
+		fmt.Printf("DEBUG GetTodo error: %v, type: %T\n", err, err)
+		fmt.Printf("DEBUG Is ErrNotFound? %v\n", errors.Is(err, domain.ErrNotFound))
+
 		if errors.Is(err, domain.ErrNotFound) { // Check custom error
 			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
 			return
@@ -259,6 +263,17 @@ func translateValidationError(err error) string {
 				messages = append(messages, "title must be at most 255 characters")
 			default:
 				messages = append(messages, "title is invalid")
+			}
+		case "Priority":
+			switch fieldErr.Tag() {
+			case "required":
+				messages = append(messages, "priority is required")
+			case "min":
+				messages = append(messages, "priority must be between 1 and 5")
+			case "max":
+				messages = append(messages, "priority must be between 1 and 5")
+			default:
+				messages = append(messages, "priority is invalid")
 			}
 		default:
 			messages = append(messages, fmt.Sprintf("%s is invalid", strings.ToLower(fieldErr.Field())))
