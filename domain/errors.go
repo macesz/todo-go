@@ -24,6 +24,8 @@ var (
 
 	ErrTodoNotFound = errors.New("todo not found")
 
+	ErrListNotFound = errors.New("todo list not found")
+
 	// User-specific errors (add more as needed)
 	ErrUserNotFound       = errors.New("user not found")
 	ErrInvalidEmail       = errors.New("invalid email")
