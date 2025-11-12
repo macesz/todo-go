@@ -49,6 +49,14 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 
 		r.Use(middleware.AllowContentType("application/json", "text/xml"))
 
+		r.Route("/lists", func(r chi.Router) {
+			r.Get("/", handlers.TodoList.List)
+			r.Get("/{id}", handlers.TodoList.Get)
+			r.Post("/", handlers.TodoList.Create)
+			r.Put("/{id}", handlers.TodoList.Update)
+			r.Delete("/{id}", handlers.TodoList.Delete)
+		})
+
 		r.Route("/todos", func(r chi.Router) {
 			r.Get("/", handlers.Todo.ListTodos)         // List all todos
 			r.Get("/{id}", handlers.Todo.GetTodo)       // Get specific todo by ID
