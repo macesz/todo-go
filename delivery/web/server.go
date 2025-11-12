@@ -51,7 +51,7 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 
 		r.Route("/lists", func(r chi.Router) {
 			r.Get("/", handlers.TodoList.List)
-			r.Get("/{id}", handlers.TodoList.Get)
+			r.Get("/{id}", handlers.TodoList.GetListByID)
 			r.Post("/", handlers.TodoList.Create)
 			r.Put("/{id}", handlers.TodoList.Update)
 			r.Delete("/{id}", handlers.TodoList.Delete)
