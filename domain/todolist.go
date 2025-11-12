@@ -10,4 +10,5 @@ type TodoList struct {
 	Color     string
 	Labels    []string
 	CreatedAt time.Time
+	Items     []Todo
 }

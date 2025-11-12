@@ -202,12 +202,11 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respTodo := domain.TodoDTO{
-		ID:        updated.ID,
-		UserID:    user.ID,
-		Title:     updated.Title,
-		Done:      updated.Done,
-		Priority:  updated.Priority,
-		CreatedAt: updated.CreatedAt.Format(time.RFC3339), // Format time as ISO string
+		ID:       updated.ID,
+		UserID:   user.ID,
+		Title:    updated.Title,
+		Done:     updated.Done,
+		Priority: updated.Priority,
 	}
 
 	utils.WriteJSON(w, http.StatusOK, respTodo) // Return the updated todo as JSON
