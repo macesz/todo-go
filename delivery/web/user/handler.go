@@ -21,7 +21,7 @@ import (
 func (h *UserHandlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	var reqUser domain.CreateUserDTO // Empty User struct to decode into
+	var reqUser domain.CreateUserRequestDTO // Empty User struct to decode into
 
 	// Decode the JSON body into the user struct
 	if err := json.NewDecoder(r.Body).Decode(&reqUser); err != nil {
@@ -56,7 +56,7 @@ func (h *UserHandlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	respUser := domain.UserResponseDTO{
+	respUser := domain.UserDTO{
 		ID:    user.ID,
 		Name:  user.Name,
 		Email: user.Email,
@@ -90,7 +90,7 @@ func (h *UserHandlers) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respUser := domain.UserResponseDTO{
+	respUser := domain.UserDTO{
 		ID:    user.ID,
 		Name:  user.Name,
 		Email: user.Email,
@@ -142,7 +142,7 @@ func (h *UserHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	// Prepare response
 	respLogin := domain.LoginResponseDTO{
 		Token: tokenString,
-		User: domain.UserResponseDTO{
+		User: domain.UserDTO{
 			ID:    user.ID,
 			Name:  user.Name,
 			Email: user.Email,
