@@ -15,13 +15,13 @@ type TodoDTO struct {
 
 type CreateTodoDTO struct {
 	Title    string `json:"title" validate:"required,min=1,max=255"`
-	Priority int64  `json:"priority"`
+	Priority int64  `json:"priority" validate:"required,min=1,max=5"`
 }
 
 type UpdateTodoDTO struct {
 	Title    string `json:"title" validate:"required,min=1,max=255"`
 	Done     bool   `json:"done" validate:"required"`
-	Priority int64  `json:"priority"`
+	Priority int64  `json:"priority" validate:"required,min=1,max=5"`
 }
 
 type ErrorResponse struct {

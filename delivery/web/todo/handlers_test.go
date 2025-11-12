@@ -11,25 +11,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/macesz/todo-go/tests/testutils"
+
 	chi "github.com/go-chi/chi/v5"
-	"github.com/macesz/todo-go/delivery/web/auth"
 	"github.com/macesz/todo-go/delivery/web/todo/mocks"
 	"github.com/macesz/todo-go/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-// Helper function to add user context to request (simulating authenticated user)
-func withUserContext(req *http.Request, userID int64) *http.Request {
-	userCtx := &auth.UserContext{
-		ID:    userID,
-		Email: "test@example.com",
-		Name:  "Test User",
-	}
-	ctx := userCtx.AddToContext(req.Context())
-	return req.WithContext(ctx)
-}
 
 // TestListTodos tests the ListTodos handler with various scenarios
 func TestListTodos(t *testing.T) {
@@ -83,7 +73,7 @@ func TestListTodos(t *testing.T) {
 			require.NoError(t, err)
 
 			// Add user context to simulate authenticated request
-			req = withUserContext(req, testUserID)
+			req = testutils.WithUserContext(req, testUserID)
 
 			rr := httptest.NewRecorder()
 			handlers.ListTodos(rr, req)
@@ -103,25 +93,45 @@ func TestCreateTodo(t *testing.T) {
 	tests := []struct {
 		name           string
 		inputBody      string
-		shouldCallMock bool
-		mockReturn     *domain.Todo
-		mockError      error
+		setupUserMock  func(*mocks.UserService)
+		setupTodoMock  func(*mocks.TodoService)
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
-			name:           "Valid input",
-			inputBody:      `{"title": "New Todo", "priority": 2}`,
-			shouldCallMock: true,
-			mockReturn:     &domain.Todo{ID: 1, UserID: 1, Title: "New Todo", Done: false, Priority: 2, CreatedAt: fixedTime},
-			mockError:      nil,
+			name:      "Valid input",
+			inputBody: `{"title": "New Todo", "priority": 2}`,
+			setupUserMock: func(m *mocks.UserService) {
+				m.On("GetUser", mock.Anything, testUserID).
+					Return(&domain.User{ID: testUserID, Name: "Test User", Email: "test@example.com"}, nil).
+					Once()
+			},
+			setupTodoMock: func(m *mocks.TodoService) {
+				m.On("CreateTodo", mock.Anything, testUserID, "New Todo", int64(2)).
+					Return(&domain.Todo{
+						ID:        1,
+						UserID:    testUserID,
+						Title:     "New Todo",
+						Done:      false,
+						Priority:  2,
+						CreatedAt: fixedTime,
+					}, nil).
+					Once()
+			},
 			expectedStatus: http.StatusCreated,
 			expectedBody:   `{"id":1,"userID":1,"title":"New Todo","done":false,"priority":2,"createdAt":"2024-01-01T12:00:00Z"}`,
 		},
 		{
-			name:           "Missing title",
-			inputBody:      `{"title":"", "priority": 2}`,
-			shouldCallMock: false,
+			name:      "Missing title",
+			inputBody: `{"title":"", "priority": 2}`,
+			setupUserMock: func(m *mocks.UserService) {
+				m.On("GetUser", mock.Anything, testUserID).
+					Return(&domain.User{ID: testUserID, Name: "Test User", Email: "test@example.com"}, nil).
+					Once()
+			},
+			setupTodoMock: func(m *mocks.TodoService) {
+				// Should not be called due to validation error
+			},
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"title is required"}`,
 		},
@@ -129,34 +139,31 @@ func TestCreateTodo(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockService := mocks.NewTodoService(t)
+			// Create mocks
+			mockUserService := mocks.NewUserService(t)
+			mockTodoService := mocks.NewTodoService(t)
 
-			if tt.shouldCallMock {
-				// Parse expected input to get title and priority
-				var input map[string]interface{}
-				json.Unmarshal([]byte(tt.inputBody), &input)
-				expectedTitle := strings.TrimSpace(input["title"].(string))
-				expectedPriority := int64(2) // Default or parse from input
-				if p, ok := input["priority"].(float64); ok {
-					expectedPriority = int64(p)
-				}
+			// Setup mocks
+			tt.setupUserMock(mockUserService)
+			tt.setupTodoMock(mockTodoService)
 
-				// Updated to match new signature: CreateTodo(ctx, userID, title, priority)
-				mockService.On("CreateTodo", mock.Anything, testUserID, expectedTitle, expectedPriority).
-					Return(tt.mockReturn, tt.mockError).
-					Once()
+			// Create handlers with both services
+			handlers := &TodoHandlers{
+				userService: mockUserService,
+				todoService: mockTodoService,
 			}
 
-			handlers := &TodoHandlers{todoService: mockService}
-
+			// Create request
 			req, err := http.NewRequest(http.MethodPost, "/todos", strings.NewReader(tt.inputBody))
 			require.NoError(t, err)
 			req.Header.Set("Content-Type", "application/json")
 
 			// Add user context
-			req = withUserContext(req, testUserID)
+			req = testutils.WithUserContext(req, testUserID)
 
+			// Create response recorder
 			rr := httptest.NewRecorder()
+			// Call handler
 			handlers.CreateTodo(rr, req)
 
 			require.Equal(t, tt.expectedStatus, rr.Code)
@@ -165,7 +172,9 @@ func TestCreateTodo(t *testing.T) {
 				assert.JSONEq(t, tt.expectedBody, rr.Body.String())
 			}
 
-			mockService.AssertExpectations(t)
+			// Assert mock expectations
+			mockUserService.AssertExpectations(t)
+			mockTodoService.AssertExpectations(t)
 		})
 	}
 }
@@ -222,7 +231,7 @@ func TestGetTodo(t *testing.T) {
 			require.NoError(t, err)
 
 			// Add user context
-			req = withUserContext(req, testUserID)
+			req = testutils.WithUserContext(req, testUserID)
 
 			// Add chi URL params
 			rctx := chi.NewRouteContext()
@@ -310,7 +319,7 @@ func TestUpdateTodo(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 
 			// Add user context
-			req = withUserContext(req, testUserID)
+			req = testutils.WithUserContext(req, testUserID)
 
 			// Add chi URL params
 			rctx := chi.NewRouteContext()
@@ -379,7 +388,7 @@ func TestDeleteTodo(t *testing.T) {
 			require.NoError(t, err)
 
 			// Add user context
-			req = withUserContext(req, testUserID)
+			req = testutils.WithUserContext(req, testUserID)
 
 			// Add chi URL params
 			rctx := chi.NewRouteContext()

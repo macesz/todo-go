@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -64,8 +65,8 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 	})
 
 	// Start the server
-	log.Println("listening on :3000")
-	if err := http.ListenAndServe(":3000", r); err != nil {
+	log.Printf("listening on :%s", conf.ServerPort)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", conf.ServerPort), r); err != nil {
 		log.Fatal(err)
 	}
 }
