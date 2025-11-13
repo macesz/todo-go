@@ -128,7 +128,7 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusCreated, respTodo)
 }
 
-// GetTodo handles GET /todos/{id} requests.
+// GetTodo handles GET /lists/{listID}/todos/{id} requests.
 func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
@@ -136,9 +136,20 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idr := chi.URLParam(r, "id") // Get the "id" URL parameter
+	// get listId parameter
+	idrl := chi.URLParam(r, "listID") // Get the "id" URL parameter
+	if idrl == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
+		return
+	}
 
-	// Check if id parameter exists
+	listID, err := strconv.ParseInt(idrl, 10, 64) // Convert id string to int
+	if err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
+		return
+	}
+
+	idr := chi.URLParam(r, "id") // Get the "id" URL parameter
 	if idr == "" {
 		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
 		return
@@ -152,13 +163,10 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the todo from the service
-	todo, err := h.todoService.GetTodo(r.Context(), user.ID, id) // Get the todo from the service
+	todo, err := h.todoService.GetTodo(r.Context(), user.ID, id)
 	if err != nil {
-		// DEBUG: Print the actual error
-		fmt.Printf("DEBUG GetTodo error: %v, type: %T\n", err, err)
-		fmt.Printf("DEBUG Is ErrNotFound? %v\n", errors.Is(err, domain.ErrNotFound))
 
-		if errors.Is(err, domain.ErrNotFound) { // Check custom error
+		if errors.Is(err, domain.ErrNotFound) {
 			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
 			return
 		}
@@ -170,6 +178,7 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 	respTodo := domain.TodoDTO{
 		ID:        todo.ID,
 		UserID:    todo.UserID,
+		ListID:    listID,
 		Title:     todo.Title,
 		Done:      todo.Done,
 		Priority:  todo.Priority,
@@ -179,11 +188,25 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, respTodo) // Return the todo as JSON
 }
 
-// UpdateTodo handles PUT /todos/{id} requests.
+// UpdateTodo handles PUT /lists/{listID}/todos/{id} requests.
 func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
 		utils.WriteJSON(w, http.StatusForbidden, domain.ErrorResponse{Error: "missing user"})
+		return
+	}
+
+	//get {listID} parameter
+	idrl := chi.URLParam(r, "listID") // Get the "id" URL parameter
+
+	if idrl == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
+		return
+	}
+
+	listID, err := strconv.ParseInt(idrl, 10, 64) // Convert id string to int
+	if err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
 		return
 	}
 
@@ -235,6 +258,7 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	respTodo := domain.TodoDTO{
 		ID:       updated.ID,
 		UserID:   user.ID,
+		ListID:   listID,
 		Title:    updated.Title,
 		Done:     updated.Done,
 		Priority: updated.Priority,

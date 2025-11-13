@@ -336,6 +336,7 @@ func TestGetTodo(t *testing.T) {
 }
 
 func TestUpdateTodo(t *testing.T) {
+	testListID := int64(1)
 
 	t.Parallel()
 
@@ -350,6 +351,7 @@ func TestUpdateTodo(t *testing.T) {
 	type args struct {
 		ctx      context.Context
 		userId   int64
+		listID   int64
 		id       int64
 		title    string
 		done     bool
@@ -374,14 +376,16 @@ func TestUpdateTodo(t *testing.T) {
 			args: args{
 				ctx:      context.Background(),
 				userId:   1,
+				listID:   1,
 				id:       1,
 				title:    "Updated Todo",
 				done:     true,
 				priority: 3,
 			},
 			want: &domain.Todo{
-				UserID:    1,
 				ID:        1,
+				UserID:    1,
+				ListID:    testListID,
 				Title:     "Updated Todo",
 				Done:      true,
 				Priority:  3,
@@ -394,6 +398,7 @@ func TestUpdateTodo(t *testing.T) {
 				store.On("Get", ta.ctx, ta.id).Return(&domain.Todo{
 					ID:        ta.id,
 					UserID:    ta.userId,
+					ListID:    testListID,
 					Title:     "Test Todo",
 					Done:      false,
 					CreatedAt: fixedTime,
@@ -403,6 +408,7 @@ func TestUpdateTodo(t *testing.T) {
 				store.On("Update", ta.ctx, ta.id, ta.title, ta.done, ta.priority).Return(&domain.Todo{
 					UserID:    ta.userId,
 					ID:        ta.id,
+					ListID:    ta.listID,
 					Title:     ta.title,
 					Done:      ta.done,
 					Priority:  ta.priority,
