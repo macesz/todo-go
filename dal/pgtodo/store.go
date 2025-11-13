@@ -31,7 +31,7 @@ func CreateStore(db *sqlx.DB) *Store {
 }
 
 // List retrieves a list of todos from the database.
-func (s *Store) List(ctx context.Context, userID int64) ([]*domain.Todo, error) {
+func (s *Store) List(ctx context.Context, userID int64, listID int64) ([]*domain.Todo, error) {
 	todos := make([]*domain.Todo, 0)
 
 	// Template parameters are not safe to use directly in the query, because they can be used to inject SQL code.
@@ -48,6 +48,7 @@ func (s *Store) List(ctx context.Context, userID int64) ([]*domain.Todo, error) 
 	// This is safe to use directly in the query, because it uses named parameters.
 	queryParams := map[string]any{
 		"user_id": userID,
+		"list_id": listID,
 	}
 
 	// Execute the query. You can add parameters to the query if needed instead of using nil.
@@ -73,7 +74,7 @@ func (s *Store) List(ctx context.Context, userID int64) ([]*domain.Todo, error) 
 	return todos, nil
 }
 
-func (s *Store) Create(ctx context.Context, todo *domain.Todo) error {
+func (s *Store) Create(ctx context.Context, listID int64, todo *domain.Todo) error {
 	templateParams := map[string]any{}
 
 	querystr, err := pkg.PrepareQuery(s.queryTemplates[createTodoQuery], templateParams)
@@ -83,6 +84,7 @@ func (s *Store) Create(ctx context.Context, todo *domain.Todo) error {
 
 	queryParams := map[string]any{
 		"user_id":    todo.UserID,
+		"list_id":    listID,
 		"title":      todo.Title,
 		"priority":   todo.Priority,
 		"created_at": todo.CreatedAt,

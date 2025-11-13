@@ -25,6 +25,7 @@ import (
 func TestListTodos(t *testing.T) {
 	fixedTime := time.Date(2024, time.January, 1, 12, 0, 0, 0, time.UTC)
 	testUserID := int64(1)
+	testListID := int64(1)
 
 	tests := []struct {
 		name           string
@@ -43,11 +44,11 @@ func TestListTodos(t *testing.T) {
 		{
 			name: "One todo",
 			mockReturn: []*domain.Todo{
-				{ID: 1, UserID: testUserID, Title: "Test Todo 1", Done: false, Priority: 3, CreatedAt: fixedTime},
+				{ID: 1, UserID: testUserID, ListID: testListID, Title: "Test Todo 1", Done: false, Priority: 3, CreatedAt: fixedTime},
 			},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `[{"ID":1,"UserID": 1,"Title":"Test Todo 1","Done":false,"Priority": 3,"CreatedAt":"2024-01-01T12:00:00Z"}]`,
+			expectedBody:   `[{"ID":1,"UserID": 1, "ListID": 1, "Title":"Test Todo 1","Done":false,"Priority": 3,"CreatedAt":"2024-01-01T12:00:00Z"}]`,
 		},
 		{
 			name:           "Service error",
@@ -62,18 +63,22 @@ func TestListTodos(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockService := mocks.NewTodoService(t)
 
-			// Updated to match new signature with userID
-			mockService.On("ListTodos", mock.Anything, testUserID).
+			// Updated to match new signature with ListID
+			mockService.On("ListTodos", mock.Anything, testUserID, testListID).
 				Return(tt.mockReturn, tt.mockError).
 				Once()
 
 			handlers := &TodoHandlers{todoService: mockService}
 
-			req, err := http.NewRequest(http.MethodGet, "/todos", nil)
+			req, err := http.NewRequest(http.MethodGet, "/{listID}/todos/", nil)
 			require.NoError(t, err)
 
 			// Add user context to simulate authenticated request
 			req = testutils.WithUserContext(req, testUserID)
+
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("listID", "1") // Add the listID parameter
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 			rr := httptest.NewRecorder()
 			handlers.ListTodos(rr, req)
@@ -89,6 +94,7 @@ func TestListTodos(t *testing.T) {
 func TestCreateTodo(t *testing.T) {
 	fixedTime := time.Date(2024, time.January, 1, 12, 0, 0, 0, time.UTC)
 	testUserID := int64(1)
+	testListID := int64(1)
 
 	tests := []struct {
 		name           string
@@ -107,10 +113,11 @@ func TestCreateTodo(t *testing.T) {
 					Once()
 			},
 			setupTodoMock: func(m *mocks.TodoService) {
-				m.On("CreateTodo", mock.Anything, testUserID, "New Todo", int64(2)).
+				m.On("CreateTodo", mock.Anything, testUserID, testListID, "New Todo", int64(2)).
 					Return(&domain.Todo{
 						ID:        1,
 						UserID:    testUserID,
+						ListID:    testListID,
 						Title:     "New Todo",
 						Done:      false,
 						Priority:  2,
@@ -119,7 +126,7 @@ func TestCreateTodo(t *testing.T) {
 					Once()
 			},
 			expectedStatus: http.StatusCreated,
-			expectedBody:   `{"id":1,"userID":1,"title":"New Todo","done":false,"priority":2,"createdAt":"2024-01-01T12:00:00Z"}`,
+			expectedBody:   `{"id":1,"user_id":1,"list_id":1,"title":"New Todo","done":false,"priority":2,"created_at":"2024-01-01T12:00:00Z"}`,
 		},
 		{
 			name:      "Missing title",
@@ -154,12 +161,16 @@ func TestCreateTodo(t *testing.T) {
 			}
 
 			// Create request
-			req, err := http.NewRequest(http.MethodPost, "/todos", strings.NewReader(tt.inputBody))
+			req, err := http.NewRequest(http.MethodPost, "/{listID}/todos", strings.NewReader(tt.inputBody))
 			require.NoError(t, err)
 			req.Header.Set("Content-Type", "application/json")
 
 			// Add user context
 			req = testutils.WithUserContext(req, testUserID)
+
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("listID", "1") // Add the listID parameter
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 			// Create response recorder
 			rr := httptest.NewRecorder()
