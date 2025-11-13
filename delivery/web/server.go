@@ -57,7 +57,7 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 			r.Delete("/{id}", handlers.TodoList.Delete)
 		})
 
-		r.Route("/todos", func(r chi.Router) {
+		r.Route("/{listID}/todos", func(r chi.Router) {
 			r.Get("/", handlers.Todo.ListTodos)         // List all todos
 			r.Get("/{id}", handlers.Todo.GetTodo)       // Get specific todo by ID
 			r.Post("/", handlers.Todo.CreateTodo)       // Create a new todo

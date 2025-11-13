@@ -27,7 +27,22 @@ func (h *TodoHandlers) ListTodos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	todos, err := h.todoService.ListTodos(r.Context(), user.ID)
+	idr := chi.URLParam(r, "listID") // Get the "id" URL parameter
+
+	// Check if id parameter exists
+	if idr == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
+		return
+	}
+
+	// Convert id string to int64
+	listID, err := strconv.ParseInt(idr, 10, 64) // Convert id string to int
+	if err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
+		return
+	}
+
+	todos, err := h.todoService.ListTodos(r.Context(), user.ID, listID)
 	if err != nil {
 		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})
 		return
@@ -54,6 +69,21 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	idr := chi.URLParam(r, "listID") // Get the "id" URL parameter
+
+	// Check if id parameter exists
+	if idr == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
+		return
+	}
+
+	// Convert id string to int64
+	listID, err := strconv.ParseInt(idr, 10, 64) // Convert id string to int
+	if err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
+		return
+	}
+
 	var reqTodo domain.CreateTodoDTO // Empty Todo struct to decode into
 
 	// Decode the JSON body into the todo struct
@@ -75,7 +105,7 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 
 	// Create the todo using the service
 	// If creation fails, return 400 Bad Request
-	todo, err := h.todoService.CreateTodo(r.Context(), user.ID, reqTodo.Title, reqTodo.Priority)
+	todo, err := h.todoService.CreateTodo(r.Context(), user.ID, listID, reqTodo.Title, reqTodo.Priority)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidTitle) {
 			utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
@@ -88,6 +118,7 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	respTodo := domain.TodoDTO{
 		ID:        todo.ID,
 		UserID:    todo.UserID,
+		ListID:    todo.ListID,
 		Title:     todo.Title,
 		Done:      todo.Done,
 		Priority:  todo.Priority,
