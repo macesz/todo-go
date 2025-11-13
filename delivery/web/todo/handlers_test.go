@@ -70,7 +70,7 @@ func TestListTodos(t *testing.T) {
 
 			handlers := &TodoHandlers{todoService: mockService}
 
-			req, err := http.NewRequest(http.MethodGet, "/{listID}/todos/", nil)
+			req, err := http.NewRequest(http.MethodGet, "/lists/{listID}/todos/", nil)
 			require.NoError(t, err)
 
 			// Add user context to simulate authenticated request
@@ -161,7 +161,7 @@ func TestCreateTodo(t *testing.T) {
 			}
 
 			// Create request
-			req, err := http.NewRequest(http.MethodPost, "/{listID}/todos", strings.NewReader(tt.inputBody))
+			req, err := http.NewRequest(http.MethodPost, "/lists/{listID}/todos/", strings.NewReader(tt.inputBody))
 			require.NoError(t, err)
 			req.Header.Set("Content-Type", "application/json")
 
@@ -194,6 +194,7 @@ func TestCreateTodo(t *testing.T) {
 func TestGetTodo(t *testing.T) {
 	fixedTime := time.Date(2024, time.January, 1, 12, 0, 0, 0, time.UTC)
 	testUserID := int64(1)
+	testListID := int64(1)
 
 	tests := []struct {
 		name           string
@@ -208,10 +209,10 @@ func TestGetTodo(t *testing.T) {
 			name:           "Valid ID",
 			urlParam:       "1",
 			shouldCallMock: true,
-			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, Title: "Test Todo", Done: false, Priority: 3, CreatedAt: fixedTime},
+			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, ListID: testListID, Title: "Test Todo", Done: false, Priority: 3, CreatedAt: fixedTime},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id":1,"userID":1,"title":"Test Todo","done":false,"priority":3,"createdAt":"2024-01-01T12:00:00Z"}`,
+			expectedBody:   `{"id":1,"user_id":1,"list_id":1,"title":"Test Todo","done":false,"priority":3,"created_at":"2024-01-01T12:00:00Z"}`,
 		},
 		{
 			name:           "Todo not found",
@@ -238,7 +239,7 @@ func TestGetTodo(t *testing.T) {
 
 			handler := &TodoHandlers{todoService: mockService}
 
-			req, err := http.NewRequest(http.MethodGet, "/todos/"+tt.urlParam, nil)
+			req, err := http.NewRequest(http.MethodGet, "/lists/1/todos/"+tt.urlParam, nil)
 			require.NoError(t, err)
 
 			// Add user context
@@ -246,6 +247,7 @@ func TestGetTodo(t *testing.T) {
 
 			// Add chi URL params
 			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("listID", "1")
 			rctx.URLParams.Add("id", tt.urlParam)
 			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
@@ -283,10 +285,10 @@ func TestUpdateTodo(t *testing.T) {
 			urlParam:       "1",
 			inputBody:      `{"title":"Updated Todo","done":true,"priority":1}`,
 			shouldCallMock: true,
-			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, Title: "Updated Todo", Done: true, Priority: 1, CreatedAt: fixedTime},
+			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, ListID: 1, Title: "Updated Todo", Done: true, Priority: 1, CreatedAt: fixedTime},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id":1,"userID":1,"title":"Updated Todo","done":true,"priority":1,"createdAt":"2024-01-01T12:00:00Z"}`,
+			expectedBody:   `{"id":1,"user_id":1,"list_id":1,"title":"Updated Todo","done":true,"priority":1,"created_at":""}`,
 		},
 		{
 			name:           "Todo not found",
@@ -325,7 +327,7 @@ func TestUpdateTodo(t *testing.T) {
 
 			handlers := &TodoHandlers{todoService: mockService}
 
-			req, err := http.NewRequest(http.MethodPut, "/todos/"+tt.urlParam, strings.NewReader(tt.inputBody))
+			req, err := http.NewRequest(http.MethodPut, "/lists/1/todos/"+tt.urlParam, strings.NewReader(tt.inputBody))
 			require.NoError(t, err)
 			req.Header.Set("Content-Type", "application/json")
 
@@ -334,6 +336,7 @@ func TestUpdateTodo(t *testing.T) {
 
 			// Add chi URL params
 			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("listID", "1")
 			rctx.URLParams.Add("id", tt.urlParam)
 			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
@@ -395,7 +398,7 @@ func TestDeleteTodo(t *testing.T) {
 
 			handlers := &TodoHandlers{todoService: mockService}
 
-			req, err := http.NewRequest(http.MethodDelete, "/todos/"+tt.urlParam, nil)
+			req, err := http.NewRequest(http.MethodDelete, "/lists/{listID}/todos/"+tt.urlParam, nil)
 			require.NoError(t, err)
 
 			// Add user context
