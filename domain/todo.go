@@ -10,6 +10,7 @@ import (
 type Todo struct {
 	ID     int64
 	UserID int64
+	ListID int64
 
 	Title     string
 	Done      bool

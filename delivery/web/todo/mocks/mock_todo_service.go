@@ -39,8 +39,8 @@ func (_m *TodoService) EXPECT() *TodoService_Expecter {
 }
 
 // CreateTodo provides a mock function for the type TodoService
-func (_mock *TodoService) CreateTodo(ctx context.Context, userID int64, title string, priority int64) (*domain.Todo, error) {
-	ret := _mock.Called(ctx, userID, title, priority)
+func (_mock *TodoService) CreateTodo(ctx context.Context, userID int64, listID int64, title string, priority int64) (*domain.Todo, error) {
+	ret := _mock.Called(ctx, userID, listID, title, priority)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateTodo")
@@ -48,18 +48,18 @@ func (_mock *TodoService) CreateTodo(ctx context.Context, userID int64, title st
 
 	var r0 *domain.Todo
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, int64) (*domain.Todo, error)); ok {
-		return returnFunc(ctx, userID, title, priority)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, int64, string, int64) (*domain.Todo, error)); ok {
+		return returnFunc(ctx, userID, listID, title, priority)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, int64) *domain.Todo); ok {
-		r0 = returnFunc(ctx, userID, title, priority)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, int64, string, int64) *domain.Todo); ok {
+		r0 = returnFunc(ctx, userID, listID, title, priority)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*domain.Todo)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int64, string, int64) error); ok {
-		r1 = returnFunc(ctx, userID, title, priority)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int64, int64, string, int64) error); ok {
+		r1 = returnFunc(ctx, userID, listID, title, priority)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -74,13 +74,14 @@ type TodoService_CreateTodo_Call struct {
 // CreateTodo is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID int64
+//   - listID int64
 //   - title string
 //   - priority int64
-func (_e *TodoService_Expecter) CreateTodo(ctx interface{}, userID interface{}, title interface{}, priority interface{}) *TodoService_CreateTodo_Call {
-	return &TodoService_CreateTodo_Call{Call: _e.mock.On("CreateTodo", ctx, userID, title, priority)}
+func (_e *TodoService_Expecter) CreateTodo(ctx interface{}, userID interface{}, listID interface{}, title interface{}, priority interface{}) *TodoService_CreateTodo_Call {
+	return &TodoService_CreateTodo_Call{Call: _e.mock.On("CreateTodo", ctx, userID, listID, title, priority)}
 }
 
-func (_c *TodoService_CreateTodo_Call) Run(run func(ctx context.Context, userID int64, title string, priority int64)) *TodoService_CreateTodo_Call {
+func (_c *TodoService_CreateTodo_Call) Run(run func(ctx context.Context, userID int64, listID int64, title string, priority int64)) *TodoService_CreateTodo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -90,19 +91,24 @@ func (_c *TodoService_CreateTodo_Call) Run(run func(ctx context.Context, userID 
 		if args[1] != nil {
 			arg1 = args[1].(int64)
 		}
-		var arg2 string
+		var arg2 int64
 		if args[2] != nil {
-			arg2 = args[2].(string)
+			arg2 = args[2].(int64)
 		}
-		var arg3 int64
+		var arg3 string
 		if args[3] != nil {
-			arg3 = args[3].(int64)
+			arg3 = args[3].(string)
+		}
+		var arg4 int64
+		if args[4] != nil {
+			arg4 = args[4].(int64)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
+			arg4,
 		)
 	})
 	return _c
@@ -113,7 +119,7 @@ func (_c *TodoService_CreateTodo_Call) Return(todo *domain.Todo, err error) *Tod
 	return _c
 }
 
-func (_c *TodoService_CreateTodo_Call) RunAndReturn(run func(ctx context.Context, userID int64, title string, priority int64) (*domain.Todo, error)) *TodoService_CreateTodo_Call {
+func (_c *TodoService_CreateTodo_Call) RunAndReturn(run func(ctx context.Context, userID int64, listID int64, title string, priority int64) (*domain.Todo, error)) *TodoService_CreateTodo_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -256,8 +262,8 @@ func (_c *TodoService_GetTodo_Call) RunAndReturn(run func(ctx context.Context, u
 }
 
 // ListTodos provides a mock function for the type TodoService
-func (_mock *TodoService) ListTodos(ctx context.Context, userID int64) ([]*domain.Todo, error) {
-	ret := _mock.Called(ctx, userID)
+func (_mock *TodoService) ListTodos(ctx context.Context, userID int64, listID int64) ([]*domain.Todo, error) {
+	ret := _mock.Called(ctx, userID, listID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListTodos")
@@ -265,18 +271,18 @@ func (_mock *TodoService) ListTodos(ctx context.Context, userID int64) ([]*domai
 
 	var r0 []*domain.Todo
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int64) ([]*domain.Todo, error)); ok {
-		return returnFunc(ctx, userID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, int64) ([]*domain.Todo, error)); ok {
+		return returnFunc(ctx, userID, listID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int64) []*domain.Todo); ok {
-		r0 = returnFunc(ctx, userID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, int64) []*domain.Todo); ok {
+		r0 = returnFunc(ctx, userID, listID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*domain.Todo)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int64) error); ok {
-		r1 = returnFunc(ctx, userID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int64, int64) error); ok {
+		r1 = returnFunc(ctx, userID, listID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -291,11 +297,12 @@ type TodoService_ListTodos_Call struct {
 // ListTodos is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID int64
-func (_e *TodoService_Expecter) ListTodos(ctx interface{}, userID interface{}) *TodoService_ListTodos_Call {
-	return &TodoService_ListTodos_Call{Call: _e.mock.On("ListTodos", ctx, userID)}
+//   - listID int64
+func (_e *TodoService_Expecter) ListTodos(ctx interface{}, userID interface{}, listID interface{}) *TodoService_ListTodos_Call {
+	return &TodoService_ListTodos_Call{Call: _e.mock.On("ListTodos", ctx, userID, listID)}
 }
 
-func (_c *TodoService_ListTodos_Call) Run(run func(ctx context.Context, userID int64)) *TodoService_ListTodos_Call {
+func (_c *TodoService_ListTodos_Call) Run(run func(ctx context.Context, userID int64, listID int64)) *TodoService_ListTodos_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -305,9 +312,14 @@ func (_c *TodoService_ListTodos_Call) Run(run func(ctx context.Context, userID i
 		if args[1] != nil {
 			arg1 = args[1].(int64)
 		}
+		var arg2 int64
+		if args[2] != nil {
+			arg2 = args[2].(int64)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -318,7 +330,7 @@ func (_c *TodoService_ListTodos_Call) Return(todos []*domain.Todo, err error) *T
 	return _c
 }
 
-func (_c *TodoService_ListTodos_Call) RunAndReturn(run func(ctx context.Context, userID int64) ([]*domain.Todo, error)) *TodoService_ListTodos_Call {
+func (_c *TodoService_ListTodos_Call) RunAndReturn(run func(ctx context.Context, userID int64, listID int64) ([]*domain.Todo, error)) *TodoService_ListTodos_Call {
 	_c.Call.Return(run)
 	return _c
 }

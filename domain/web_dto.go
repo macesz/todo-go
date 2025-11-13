@@ -35,7 +35,8 @@ type UpdateTodoListRequestDTO struct {
 // TODO
 type TodoDTO struct {
 	ID        int64  `json:"id"`
-	UserID    int64  `json:"userID"`
+	UserID    int64  `json:"user_id"`
+	ListID    int64  `json:"list_id"`
 	Title     string `json:"title"`
 	Done      bool   `json:"done"`
 	Priority  int64  `json:"priority"`
