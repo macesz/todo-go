@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS todolist;
+DROP SEQUENCE IF EXISTS todolist_id_seq;
