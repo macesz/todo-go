@@ -289,25 +289,27 @@ func (_c *TodoListStore_List_Call) RunAndReturn(run func(ctx context.Context, us
 }
 
 // Update provides a mock function for the type TodoListStore
-func (_mock *TodoListStore) Update(ctx context.Context, title string, color string, labels []string) (domain.TodoList, error) {
-	ret := _mock.Called(ctx, title, color, labels)
+func (_mock *TodoListStore) Update(ctx context.Context, id int64, title string, color string, labels []string) (*domain.TodoList, error) {
+	ret := _mock.Called(ctx, id, title, color, labels)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
 	}
 
-	var r0 domain.TodoList
+	var r0 *domain.TodoList
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []string) (domain.TodoList, error)); ok {
-		return returnFunc(ctx, title, color, labels)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, string, []string) (*domain.TodoList, error)); ok {
+		return returnFunc(ctx, id, title, color, labels)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []string) domain.TodoList); ok {
-		r0 = returnFunc(ctx, title, color, labels)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, string, []string) *domain.TodoList); ok {
+		r0 = returnFunc(ctx, id, title, color, labels)
 	} else {
-		r0 = ret.Get(0).(domain.TodoList)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*domain.TodoList)
+		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, []string) error); ok {
-		r1 = returnFunc(ctx, title, color, labels)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int64, string, string, []string) error); ok {
+		r1 = returnFunc(ctx, id, title, color, labels)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -321,47 +323,53 @@ type TodoListStore_Update_Call struct {
 
 // Update is a helper method to define mock.On call
 //   - ctx context.Context
+//   - id int64
 //   - title string
 //   - color string
 //   - labels []string
-func (_e *TodoListStore_Expecter) Update(ctx interface{}, title interface{}, color interface{}, labels interface{}) *TodoListStore_Update_Call {
-	return &TodoListStore_Update_Call{Call: _e.mock.On("Update", ctx, title, color, labels)}
+func (_e *TodoListStore_Expecter) Update(ctx interface{}, id interface{}, title interface{}, color interface{}, labels interface{}) *TodoListStore_Update_Call {
+	return &TodoListStore_Update_Call{Call: _e.mock.On("Update", ctx, id, title, color, labels)}
 }
 
-func (_c *TodoListStore_Update_Call) Run(run func(ctx context.Context, title string, color string, labels []string)) *TodoListStore_Update_Call {
+func (_c *TodoListStore_Update_Call) Run(run func(ctx context.Context, id int64, title string, color string, labels []string)) *TodoListStore_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 int64
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(int64)
 		}
 		var arg2 string
 		if args[2] != nil {
 			arg2 = args[2].(string)
 		}
-		var arg3 []string
+		var arg3 string
 		if args[3] != nil {
-			arg3 = args[3].([]string)
+			arg3 = args[3].(string)
+		}
+		var arg4 []string
+		if args[4] != nil {
+			arg4 = args[4].([]string)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
+			arg4,
 		)
 	})
 	return _c
 }
 
-func (_c *TodoListStore_Update_Call) Return(todoList domain.TodoList, err error) *TodoListStore_Update_Call {
+func (_c *TodoListStore_Update_Call) Return(todoList *domain.TodoList, err error) *TodoListStore_Update_Call {
 	_c.Call.Return(todoList, err)
 	return _c
 }
 
-func (_c *TodoListStore_Update_Call) RunAndReturn(run func(ctx context.Context, title string, color string, labels []string) (domain.TodoList, error)) *TodoListStore_Update_Call {
+func (_c *TodoListStore_Update_Call) RunAndReturn(run func(ctx context.Context, id int64, title string, color string, labels []string) (*domain.TodoList, error)) *TodoListStore_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }
