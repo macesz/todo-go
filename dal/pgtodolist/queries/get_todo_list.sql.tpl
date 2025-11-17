@@ -1,3 +1,3 @@
-SELECT * FROM todolist
+SELECT * FROM todolists
 WHERE
-    user_id = :user_id
+    id = :id

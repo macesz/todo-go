@@ -1,2 +1,2 @@
-DELETE FROM todolist
+DELETE FROM todolists
 WHERE id = :id;
