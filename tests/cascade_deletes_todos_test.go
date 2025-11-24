@@ -12,42 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// // setupTodoListTestServer creates a real server with all dependencies for todo list testing
-// func setupTodoListTestServer(t *testing.T) (*chi.Mux, *testutils.TestContainer, int64) {
-// 	t.Helper()
-
-// 	// Setup database
-// 	tc := testutils.SetupTestDB(t)
-
-// 	// Create stores
-// 	todoListStore := pgtodolist.CreateStore(tc.DB)
-// 	userStore := pguser.CreateStore(tc.DB)
-
-// 	// Create services using constructors
-// 	todoListSvc := todolistservice.NewTodoListService(todoListStore)
-// 	userSvc := userservice.NewUserService(userStore)
-
-// 	// Create test user
-// 	testUser, err := userSvc.CreateUser(t.Context(), "Test User", "test@example.com", "password123")
-// 	require.NoError(t, err)
-
-// 	// Create handlers using constructor
-// 	todoListHandlers := todolist.NewHandlers(todoListSvc, userSvc)
-
-// 	// Setup router with proper routes
-// 	r := chi.NewRouter()
-// 	r.Get("/lists", todoListHandlers.List)
-// 	r.Post("/lists", todoListHandlers.Create)
-// 	r.Get("/lists/{id}", todoListHandlers.GetListByID)
-// 	r.Put("/lists/{id}", todoListHandlers.Update)
-// 	r.Delete("/lists/{id}", todoListHandlers.Delete)
-
-// 	return r, tc, testUser.ID
-// }
-//
-//
-
-func TestTodoListHandlers_CascadeDeleteDeletesTodos(t *testing.T) {
+func Test_CascadeDeleteDeletesTodos(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
@@ -56,7 +21,7 @@ func TestTodoListHandlers_CascadeDeleteDeletesTodos(t *testing.T) {
 	defer testutils.CleanupDB(t, tc.DB)
 
 	// 1. Create a list for this user directly in DB
-	listID, err := testutils.GivenTodoLists(t, tc.DB, domain.TodoList{
+	todolistID, err := testutils.GivenTodoLists(t, tc.DB, domain.TodoList{
 		UserID:    userID,
 		Title:     "List with todos",
 		Color:     "#FFFFFF",
@@ -68,7 +33,7 @@ func TestTodoListHandlers_CascadeDeleteDeletesTodos(t *testing.T) {
 	// 2. Create one or more todos in that list
 	_, err = testutils.GivenTodo(t, tc.DB, domain.Todo{
 		UserID:     userID,
-		TodoListID: listID,
+		TodoListID: todolistID,
 		Title:      "Todo 1",
 		Done:       false,
 		Priority:   1,
@@ -78,7 +43,7 @@ func TestTodoListHandlers_CascadeDeleteDeletesTodos(t *testing.T) {
 
 	_, err = testutils.GivenTodo(t, tc.DB, domain.Todo{
 		UserID:     userID,
-		TodoListID: listID,
+		TodoListID: todolistID,
 		Title:      "Todo 2",
 		Done:       false,
 		Priority:   2,
@@ -88,12 +53,12 @@ func TestTodoListHandlers_CascadeDeleteDeletesTodos(t *testing.T) {
 
 	// Sanity check: there are todos for this list
 	var beforeCount int
-	err = tc.DB.Get(&beforeCount, "SELECT COUNT(*) FROM todos WHERE list_id = $1", listID)
+	err = tc.DB.Get(&beforeCount, "SELECT COUNT(*) FROM todos WHERE todolist_id = $1", todolistID)
 	require.NoError(t, err)
 	require.Equal(t, 2, beforeCount)
 
 	// 3. Delete the list via HTTP
-	url := fmt.Sprintf("/lists/%d", listID)
+	url := fmt.Sprintf("/lists/%d", todolistID)
 	req := httptest.NewRequest(http.MethodDelete, url, nil)
 	req = testutils.WithUserContext(req, userID)
 	rr := httptest.NewRecorder()
@@ -104,7 +69,7 @@ func TestTodoListHandlers_CascadeDeleteDeletesTodos(t *testing.T) {
 
 	// 4. Assert that todos were deleted (cascade delete)
 	var afterCount int
-	err = tc.DB.Get(&afterCount, "SELECT COUNT(*) FROM todos WHERE list_id = $1", listID)
+	err = tc.DB.Get(&afterCount, "SELECT COUNT(*) FROM todos WHERE todolist_id = $1", todolistID)
 	require.NoError(t, err)
 	require.Equal(t, 0, afterCount, "todos should be deleted when list is deleted")
 }

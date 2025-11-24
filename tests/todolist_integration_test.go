@@ -53,7 +53,7 @@ func setupTodoListTestServer(t *testing.T) (*chi.Mux, *testutils.TestContainer, 
 	return r, tc, testUser.ID
 }
 
-func TestTodoListHandlers_Integration(t *testing.T) {
+func Test_TodoList_Integration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}

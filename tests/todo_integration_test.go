@@ -11,10 +11,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/macesz/todo-go/dal/pgtodo"
+	"github.com/macesz/todo-go/dal/pgtodolist"
 	"github.com/macesz/todo-go/dal/pguser"
 	"github.com/macesz/todo-go/delivery/web/todo"
 	"github.com/macesz/todo-go/domain"
 	todoservice "github.com/macesz/todo-go/services/todo"
+	todolistservice "github.com/macesz/todo-go/services/todolist"
 	userservice "github.com/macesz/todo-go/services/user"
 	"github.com/macesz/todo-go/tests/testutils"
 	"github.com/stretchr/testify/require"
@@ -29,15 +31,17 @@ func setupTestServer(t *testing.T) (*chi.Mux, *testutils.TestContainer, int64) {
 
 	// Create stores
 	todoStore := pgtodo.CreateStore(tc.DB)
+	todoListStore := pgtodolist.CreateStore(tc.DB) // Required for referential integrity
 	userStore := pguser.CreateStore(tc.DB)
 
 	// Create services using constructors
 	todoSvc := todoservice.NewTodoService(todoStore)
+	// todoListSvc is not strictly needed for Todo handlers, but good for completeness if needed later
+	_ = todolistservice.NewTodoListService(todoListStore)
 	userSvc := userservice.NewUserService(userStore)
 
 	// Create test user
 	testUser, err := userSvc.CreateUser(t.Context(), "Test User", "test@example.com", "password123")
-
 	require.NoError(t, err)
 
 	// Create handlers using constructor (add this if you don't have it)
@@ -45,15 +49,18 @@ func setupTestServer(t *testing.T) (*chi.Mux, *testutils.TestContainer, int64) {
 
 	// Setup router
 	r := chi.NewRouter()
-	r.Get("/todos", todoHandlers.ListTodos)
-	r.Post("/todos", todoHandlers.CreateTodo)
-	r.Get("/todos/{id}", todoHandlers.GetTodo)
-	r.Put("/todos/{id}", todoHandlers.UpdateTodo)
-	r.Delete("/todos/{id}", todoHandlers.DeleteTodo)
+	// We need this structure so chi.URLParam(r, "listID") works in the handler
+	r.Route("/lists/{listID}/todos", func(r chi.Router) {
+		r.Get("/", todoHandlers.ListTodos)
+		r.Post("/", todoHandlers.CreateTodo)
+		r.Get("/{id}", todoHandlers.GetTodo)
+		r.Put("/{id}", todoHandlers.UpdateTodo)
+		r.Delete("/{id}", todoHandlers.DeleteTodo)
+	})
 
 	return r, tc, testUser.ID
 }
-func TestTodoHandlers_Integration(t *testing.T) {
+func Test_Todo_Integration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
@@ -62,9 +69,17 @@ func TestTodoHandlers_Integration(t *testing.T) {
 		router, tc, userID := setupTestServer(t)
 		defer testutils.CleanupDB(t, tc.DB)
 
+		// Prerequisite: Create a parent TodoList in the DB
+		listID, err := testutils.GivenTodoLists(t, tc.DB, domain.TodoList{
+			UserID: userID,
+			Title:  "Integration List",
+		})
+		require.NoError(t, err)
+
 		// 1. List todos (should be empty)
 		t.Run("List empty todos", func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/todos", nil)
+			url := fmt.Sprintf("/lists/%d/todos", listID)
+			req := httptest.NewRequest(http.MethodGet, url, nil)
 			req = testutils.WithUserContext(req, userID)
 			rr := httptest.NewRecorder()
 
@@ -87,9 +102,11 @@ func TestTodoHandlers_Integration(t *testing.T) {
 			}
 			body, _ := json.Marshal(payload)
 
-			req := httptest.NewRequest(http.MethodPost, "/todos", bytes.NewReader(body))
+			url := fmt.Sprintf("/lists/%d/todos", listID)
+			req := httptest.NewRequest(http.MethodPost, url, bytes.NewReader(body))
 			req = testutils.WithUserContext(req, userID)
 			req.Header.Set("Content-Type", "application/json")
+
 			rr := httptest.NewRecorder()
 
 			router.ServeHTTP(rr, req)
@@ -106,7 +123,7 @@ func TestTodoHandlers_Integration(t *testing.T) {
 
 		// 3. Get the created todo
 		t.Run("Get todo by ID", func(t *testing.T) {
-			url := fmt.Sprintf("/todos/%d", createdTodo.ID)
+			url := fmt.Sprintf("/lists/%d/todos/%d", listID, createdTodo.ID)
 			req := httptest.NewRequest(http.MethodGet, url, nil)
 			req = testutils.WithUserContext(req, userID)
 			rr := httptest.NewRecorder()
@@ -131,7 +148,7 @@ func TestTodoHandlers_Integration(t *testing.T) {
 			}
 			body, _ := json.Marshal(payload)
 
-			url := fmt.Sprintf("/todos/%d", createdTodo.ID)
+			url := fmt.Sprintf("/lists/%d/todos/%d", listID, createdTodo.ID)
 			req := httptest.NewRequest(http.MethodPut, url, bytes.NewReader(body))
 			req = testutils.WithUserContext(req, userID)
 			req.Header.Set("Content-Type", "application/json")
@@ -151,7 +168,8 @@ func TestTodoHandlers_Integration(t *testing.T) {
 
 		// 5. List todos (should have one)
 		t.Run("List todos after create", func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/todos", nil)
+			url := fmt.Sprintf("/lists/%d/todos", listID)
+			req := httptest.NewRequest(http.MethodGet, url, nil)
 			req = testutils.WithUserContext(req, userID)
 			rr := httptest.NewRecorder()
 
@@ -168,7 +186,7 @@ func TestTodoHandlers_Integration(t *testing.T) {
 
 		// 6. Delete the todo
 		t.Run("Delete todo", func(t *testing.T) {
-			url := fmt.Sprintf("/todos/%d", createdTodo.ID)
+			url := fmt.Sprintf("/lists/%d/todos/%d", listID, createdTodo.ID)
 			req := httptest.NewRequest(http.MethodDelete, url, nil)
 			req = testutils.WithUserContext(req, userID)
 			rr := httptest.NewRecorder()
@@ -180,7 +198,7 @@ func TestTodoHandlers_Integration(t *testing.T) {
 
 		// 7. Verify deletion
 		t.Run("Get deleted todo returns 404", func(t *testing.T) {
-			url := fmt.Sprintf("/todos/%d", createdTodo.ID)
+			url := fmt.Sprintf("/lists/%d/todos/%d", listID, createdTodo.ID)
 			req := httptest.NewRequest(http.MethodGet, url, nil)
 			req = testutils.WithUserContext(req, userID)
 			rr := httptest.NewRecorder()
@@ -197,17 +215,14 @@ func TestTodoHandlers_Integration(t *testing.T) {
 
 		ctx := context.Background()
 
-		// Create second user
-		userStore := pguser.CreateStore(tc.DB)
-		userSvc := userservice.NewUserService(userStore)
-		user2, err := userSvc.CreateUser(ctx, "Test User 2", "test2@example.com", "password123")
-		require.NoError(t, err)
-		user2ID := user2.ID
+		// 1. Setup User 1 (List + Todo)
+		list1ID, _ := testutils.GivenTodoLists(t, tc.DB, domain.TodoList{UserID: user1ID, Title: "User1 List"})
 
-		// User 1 creates a todo
 		payload := domain.CreateTodoDTO{Title: "User 1 Todo", Priority: 3}
 		body, _ := json.Marshal(payload)
-		req := httptest.NewRequest(http.MethodPost, "/todos", bytes.NewReader(body))
+		urlCreate := fmt.Sprintf("/lists/%d/todos", list1ID)
+
+		req := httptest.NewRequest(http.MethodPost, urlCreate, bytes.NewReader(body))
 		req = testutils.WithUserContext(req, user1ID)
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
@@ -217,9 +232,19 @@ func TestTodoHandlers_Integration(t *testing.T) {
 		var user1Todo domain.TodoDTO
 		json.NewDecoder(rr.Body).Decode(&user1Todo)
 
+		// Create second user
+		userStore := pguser.CreateStore(tc.DB)
+		userSvc := userservice.NewUserService(userStore)
+		user2, err := userSvc.CreateUser(ctx, "Test User 2", "test2@example.com", "password123")
+		require.NoError(t, err)
+		user2ID := user2.ID
+
+		// User 2 also needs a list to even try listing todos (valid URL requirement)
+		list2ID, _ := testutils.GivenTodoLists(t, tc.DB, domain.TodoList{UserID: user2ID, Title: "User2 List"})
+
 		// User 2 tries to access User 1's todo - should fail
 		t.Run("User 2 cannot access User 1 todo", func(t *testing.T) {
-			url := fmt.Sprintf("/todos/%d", user1Todo.ID)
+			url := fmt.Sprintf("/lists/%d/todos/%d", list1ID, user1Todo.ID)
 			req := httptest.NewRequest(http.MethodGet, url, nil)
 			req = testutils.WithUserContext(req, user2ID)
 			rr := httptest.NewRecorder()
@@ -231,7 +256,8 @@ func TestTodoHandlers_Integration(t *testing.T) {
 
 		// User 2 lists todos - should be empty
 		t.Run("User 2 sees only their todos", func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/todos", nil)
+			url := fmt.Sprintf("/lists/%d/todos", list2ID)
+			req := httptest.NewRequest(http.MethodGet, url, nil)
 			req = testutils.WithUserContext(req, user2ID)
 			rr := httptest.NewRecorder()
 
@@ -249,11 +275,14 @@ func TestTodoHandlers_Integration(t *testing.T) {
 		router, tc, userID := setupTestServer(t)
 		defer testutils.CleanupDB(t, tc.DB)
 
+		listID, _ := testutils.GivenTodoLists(t, tc.DB, domain.TodoList{UserID: userID, Title: "List"})
+
 		t.Run("Create with empty title", func(t *testing.T) {
 			payload := domain.CreateTodoDTO{Title: "", Priority: 3}
 			body, _ := json.Marshal(payload)
 
-			req := httptest.NewRequest(http.MethodPost, "/todos", bytes.NewReader(body))
+			url := fmt.Sprintf("/lists/%d/todos", listID)
+			req := httptest.NewRequest(http.MethodPost, url, bytes.NewReader(body))
 			req = testutils.WithUserContext(req, userID)
 			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
