@@ -1,6 +1,7 @@
 package pgtodolist
 
 import (
+	"strings"
 	"time"
 
 	"github.com/macesz/todo-go/domain"
@@ -11,7 +12,7 @@ type rowDTO struct {
 	UserID    int64     `db:"user_id"`
 	Title     string    `db:"title"`
 	Color     string    `db:"color"`
-	Labels    []string  `db:"labels"`
+	Labels    string    `db:"labels"`
 	CreatedAt time.Time `db:"created_at"`
 }
 
@@ -21,7 +22,7 @@ func (r rowDTO) ToDomain() *domain.TodoList {
 		UserID:    r.UserID,
 		Title:     r.Title,
 		Color:     r.Color,
-		Labels:    r.Labels,
+		Labels:    strings.Split(r.Labels, ","),
 		CreatedAt: r.CreatedAt,
 	}
 }

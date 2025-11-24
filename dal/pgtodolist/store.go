@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"text/template"
 
 	"github.com/jmoiron/sqlx"
@@ -117,7 +118,7 @@ func (s *Store) Create(ctx context.Context, todoList *domain.TodoList) error {
 		"user_id":    todoList.UserID,
 		"title":      todoList.Title,
 		"color":      todoList.Color,
-		"labels":     todoList.Labels,
+		"labels":     strings.Join(todoList.Labels, ","),
 		"created_at": todoList.CreatedAt,
 	}
 
@@ -158,7 +159,7 @@ func (s *Store) Update(ctx context.Context, id int64, title string, color string
 		"id":     id,
 		"title":  title,
 		"color":  color,
-		"labels": labels,
+		"labels": strings.Join(labels, ","),
 	}
 
 	result, err := s.db.NamedExecContext(ctx, querystr, queryParams)
