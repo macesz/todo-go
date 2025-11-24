@@ -34,13 +34,13 @@ type UpdateTodoListRequestDTO struct {
 
 // TODO
 type TodoDTO struct {
-	ID        int64  `json:"id"`
-	UserID    int64  `json:"user_id"`
-	ListID    int64  `json:"list_id"`
-	Title     string `json:"title"`
-	Done      bool   `json:"done"`
-	Priority  int64  `json:"priority"`
-	CreatedAt string `json:"created_at"`
+	ID         int64  `json:"id"`
+	UserID     int64  `json:"user_id"`
+	TodoListID int64  `json:"todolist_id"`
+	Title      string `json:"title"`
+	Done       bool   `json:"done"`
+	Priority   int64  `json:"priority"`
+	CreatedAt  string `json:"created_at"`
 }
 
 type CreateTodoDTO struct {

@@ -15,8 +15,8 @@ import (
 // Here we could add more business logic if needed
 // For example, filtering, sorting, etc.
 
-func (s *TodoService) ListTodos(ctx context.Context, userID int64, listID int64) ([]*domain.Todo, error) {
-	todos, err := s.Store.List(ctx, userID, listID)
+func (s *TodoService) ListTodos(ctx context.Context, userID int64, todolistID int64) ([]*domain.Todo, error) {
+	todos, err := s.Store.List(ctx, userID, todolistID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list todos: %w", err)
 	}
@@ -28,7 +28,7 @@ func (s *TodoService) ListTodos(ctx context.Context, userID int64, listID int64)
 // Like a service method in Java or JS
 // Here we could add more business logic if needed
 // For example, checking for duplicates, logging, etc.
-func (s *TodoService) CreateTodo(ctx context.Context, userID int64, listID int64, title string, priority int64) (*domain.Todo, error) {
+func (s *TodoService) CreateTodo(ctx context.Context, userID int64, todolistID int64, title string, priority int64) (*domain.Todo, error) {
 	// Validate title
 	if title == "" {
 		return nil, domain.ErrInvalidTitle
@@ -41,15 +41,15 @@ func (s *TodoService) CreateTodo(ctx context.Context, userID int64, listID int64
 	createdAt := time.Now()
 
 	todo := &domain.Todo{
-		UserID:    userID,
-		ListID:    listID,
-		Title:     title,
-		Done:      false,
-		Priority:  priority,
-		CreatedAt: createdAt,
+		UserID:     userID,
+		TodoListID: todolistID,
+		Title:      title,
+		Done:       false,
+		Priority:   priority,
+		CreatedAt:  createdAt,
 	}
 
-	err := s.Store.Create(ctx, listID, todo) // Delegate to the store
+	err := s.Store.Create(ctx, todolistID, todo) // Delegate to the store
 	if err != nil {
 		return nil, fmt.Errorf("failed to create todo: %w", err)
 	}

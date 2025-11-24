@@ -29,61 +29,6 @@ func (h *TodoListHandlers) List(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h *TodoListHandlers) GetListByID(w http.ResponseWriter, r *http.Request) {
-	user, ok := auth.UserFromContext(r.Context())
-	if !ok {
-		utils.WriteJSON(w, http.StatusForbidden, domain.ErrorResponse{Error: "missing user"})
-		return
-	}
-
-	idr := chi.URLParam(r, "id") // Get the "id" URL parameter
-	if idr == "" {
-		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
-		return
-	}
-
-	id, err := strconv.ParseInt(idr, 10, 64) // Convert id string to int
-	if err != nil {
-		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
-		return
-	}
-
-	todoList, err := h.todoListService.GetListByID(r.Context(), user.ID, id)
-	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) { // Check custom error
-			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
-			return
-		}
-		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"}) // Generic for security
-		return
-	}
-
-	itemDTOs := make([]domain.TodoDTO, len(todoList.Items))
-	for i, item := range todoList.Items {
-		itemDTOs[i] = domain.TodoDTO{
-			ID:        item.ID,
-			UserID:    item.UserID,
-			Title:     item.Title,
-			Done:      item.Done,
-			Priority:  item.Priority,
-			CreatedAt: item.CreatedAt.Format(time.RFC3339),
-		}
-	}
-
-	// Map to response DTO
-	respTodoList := domain.TodoListDTO{
-		ID:        todoList.ID,
-		UserID:    todoList.UserID,
-		Title:     todoList.Title,
-		Color:     &todoList.Color,
-		Labels:    todoList.Labels,
-		CreatedAt: todoList.CreatedAt.Format(time.RFC3339),
-		Items:     itemDTOs,
-	}
-	utils.WriteJSON(w, http.StatusOK, respTodoList) // Return the todo as JSON
-
-}
-
 func (h *TodoListHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -130,6 +75,61 @@ func (h *TodoListHandlers) Create(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (h *TodoListHandlers) GetListByID(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		utils.WriteJSON(w, http.StatusForbidden, domain.ErrorResponse{Error: "missing user"})
+		return
+	}
+
+	idr := chi.URLParam(r, "id") // Get the "id" URL parameter
+	if idr == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
+		return
+	}
+
+	id, err := strconv.ParseInt(idr, 10, 64) // Convert id string to int
+	if err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
+		return
+	}
+
+	todoList, err := h.todoListService.GetListByID(r.Context(), user.ID, id)
+	if err != nil {
+		if errors.Is(err, domain.ErrListNotFound) { // Check custom error
+			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
+			return
+		}
+		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"}) // Generic for security
+		return
+	}
+
+	itemDTOs := make([]domain.TodoDTO, len(todoList.Items))
+	for i, item := range todoList.Items {
+		itemDTOs[i] = domain.TodoDTO{
+			ID:        item.ID,
+			UserID:    item.UserID,
+			Title:     item.Title,
+			Done:      item.Done,
+			Priority:  item.Priority,
+			CreatedAt: item.CreatedAt.Format(time.RFC3339),
+		}
+	}
+
+	// Map to response DTO
+	respTodoList := domain.TodoListDTO{
+		ID:        todoList.ID,
+		UserID:    todoList.UserID,
+		Title:     todoList.Title,
+		Color:     &todoList.Color,
+		Labels:    todoList.Labels,
+		CreatedAt: todoList.CreatedAt.Format(time.RFC3339),
+		Items:     itemDTOs,
+	}
+	utils.WriteJSON(w, http.StatusOK, respTodoList) // Return the todo as JSON
+
+}
+
 func (h *TodoListHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -161,7 +161,7 @@ func (h *TodoListHandlers) Update(w http.ResponseWriter, r *http.Request) {
 
 	updated, err := h.todoListService.Update(ctx, user.ID, id, todoListDtO.Title, *todoListDtO.Color, todoListDtO.Labels)
 	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) { // Check custom error )
+		if errors.Is(err, domain.ErrListNotFound) { // Check custom error )
 			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
 			return
 		} else if errors.Is(err, domain.ErrInvalidTitle) { // Optional: If service returns this

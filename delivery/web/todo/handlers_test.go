@@ -44,7 +44,7 @@ func TestListTodos(t *testing.T) {
 		{
 			name: "One todo",
 			mockReturn: []*domain.Todo{
-				{ID: 1, UserID: testUserID, ListID: testListID, Title: "Test Todo 1", Done: false, Priority: 3, CreatedAt: fixedTime},
+				{ID: 1, UserID: testUserID, TodoListID: testListID, Title: "Test Todo 1", Done: false, Priority: 3, CreatedAt: fixedTime},
 			},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
@@ -115,13 +115,13 @@ func TestCreateTodo(t *testing.T) {
 			setupTodoMock: func(m *mocks.TodoService) {
 				m.On("CreateTodo", mock.Anything, testUserID, testListID, "New Todo", int64(2)).
 					Return(&domain.Todo{
-						ID:        1,
-						UserID:    testUserID,
-						ListID:    testListID,
-						Title:     "New Todo",
-						Done:      false,
-						Priority:  2,
-						CreatedAt: fixedTime,
+						ID:         1,
+						UserID:     testUserID,
+						TodoListID: testListID,
+						Title:      "New Todo",
+						Done:       false,
+						Priority:   2,
+						CreatedAt:  fixedTime,
 					}, nil).
 					Once()
 			},
@@ -209,7 +209,7 @@ func TestGetTodo(t *testing.T) {
 			name:           "Valid ID",
 			urlParam:       "1",
 			shouldCallMock: true,
-			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, ListID: testListID, Title: "Test Todo", Done: false, Priority: 3, CreatedAt: fixedTime},
+			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, TodoListID: testListID, Title: "Test Todo", Done: false, Priority: 3, CreatedAt: fixedTime},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{"id":1,"user_id":1,"list_id":1,"title":"Test Todo","done":false,"priority":3,"created_at":"2024-01-01T12:00:00Z"}`,
@@ -285,7 +285,7 @@ func TestUpdateTodo(t *testing.T) {
 			urlParam:       "1",
 			inputBody:      `{"title":"Updated Todo","done":true,"priority":1}`,
 			shouldCallMock: true,
-			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, ListID: 1, Title: "Updated Todo", Done: true, Priority: 1, CreatedAt: fixedTime},
+			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, TodoListID: 1, Title: "Updated Todo", Done: true, Priority: 1, CreatedAt: fixedTime},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{"id":1,"user_id":1,"list_id":1,"title":"Updated Todo","done":true,"priority":1,"created_at":""}`,

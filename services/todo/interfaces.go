@@ -8,8 +8,8 @@ import (
 
 // TodoStore defines the interface for a todo storage backend. Like a Java interface
 type TodoStore interface {
-	List(ctx context.Context, userID int64, listID int64) ([]*domain.Todo, error)
-	Create(ctx context.Context, listID int64, todo *domain.Todo) error
+	List(ctx context.Context, userID int64, todolistID int64) ([]*domain.Todo, error)
+	Create(ctx context.Context, todolistID int64, todo *domain.Todo) error
 	Get(ctx context.Context, id int64) (*domain.Todo, error)
 	Update(ctx context.Context, id int64, title string, done bool, priority int64) (*domain.Todo, error)
 	Delete(ctx context.Context, id int64) error

@@ -8,7 +8,7 @@ import (
 var files embed.FS
 
 const (
-	listTodoListQuery   = "list_todo_list"
+	listTodoListQuery   = "list_todo_lists"
 	createTodoListQuery = "create_todo_list"
 	getTodoListQuery    = "get_todo_list"
 	updateTodoListQuery = "update_todo_list"

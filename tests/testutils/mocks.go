@@ -2,12 +2,14 @@ package testutils
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +18,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
 	"github.com/macesz/todo-go/delivery/web/auth"
+	"github.com/macesz/todo-go/domain"
 	"github.com/macesz/todo-go/services/todo/mocks"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -168,11 +171,84 @@ func WithUserContext(req *http.Request, userID int64) *http.Request {
 func CleanupDB(t *testing.T, db *sqlx.DB) {
 	t.Helper()
 
-	tables := []string{"todos", "users"} // Add your table names
+	tables := []string{"todos", "todolists", "users"} // Add your table names
 	for _, table := range tables {
 		_, err := db.Exec(fmt.Sprintf("TRUNCATE TABLE %s RESTART IDENTITY CASCADE", table))
 		if err != nil {
 			t.Logf("Warning: failed to truncate table %s: %v", table, err)
 		}
 	}
+}
+
+func GivenTodoLists(t *testing.T, db *sqlx.DB, todoList domain.TodoList) (int64, error) {
+	sql := `INSERT INTO todolists (user_id, title, color, labels, created_at)
+			VALUES (:user_id, :title, :color, :labels, :created_at)
+			RETURNING id;`
+
+	queryParams := map[string]any{
+		"user_id":    todoList.UserID,
+		"title":      todoList.Title,
+		"color":      todoList.Color,
+		"labels":     strings.Join(todoList.Labels, ","),
+		"created_at": todoList.CreatedAt,
+	}
+
+	result, err := db.NamedQueryContext(t.Context(), sql, queryParams)
+	if err != nil {
+		return 0, err
+	}
+	defer result.Close()
+
+	var (
+		id int64
+	)
+
+	if result.Next() {
+		err = result.Scan(&id)
+		if err != nil {
+			return 0, err
+		}
+	} else {
+		return 0, errors.New("failed to retrieve inserted todo list ID")
+	}
+
+	return id, nil
+}
+
+func GivenTodo(t *testing.T, db *sqlx.DB, todo domain.Todo) (int64, error) {
+	t.Helper()
+
+	if todo.CreatedAt.IsZero() {
+		todo.CreatedAt = time.Now()
+	}
+
+	sql := `INSERT INTO todos (user_id, list_id, title, done, priority, created_at)
+			VALUES (:user_id, :list_id, :title, :done, :priority, :created_at)
+			RETURNING id;`
+
+	params := map[string]any{
+		"user_id":     todo.UserID,
+		"todolist_id": todo.TodoListID,
+		"title":       todo.Title,
+		"done":        todo.Done,
+		"priority":    todo.Priority,
+		"created_at":  todo.CreatedAt,
+	}
+
+	rows, err := db.NamedQueryContext(t.Context(), sql, params)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	var id int64
+	if rows.Next() {
+		if err := rows.Scan(&id); err != nil {
+			return 0, err
+		}
+	} else {
+		return 0, errors.New("failed to retrieve inserted todo ID")
+	}
+
+	return id, nil
 }

@@ -9,6 +9,7 @@ import (
 type rowDTO struct {
 	ID        int64     `db:"id"`
 	UserID    int64     `db:"user_id"`
+	TodlistID int64     `db:"todolist_id"`
 	Title     string    `db:"title"`
 	Done      bool      `db:"done"`
 	Priority  int64     `db:"priority"`
@@ -17,11 +18,12 @@ type rowDTO struct {
 
 func (r rowDTO) ToDomain() *domain.Todo {
 	return &domain.Todo{
-		ID:        r.ID,
-		UserID:    r.UserID,
-		Title:     r.Title,
-		Done:      r.Done,
-		Priority:  r.Priority,
-		CreatedAt: r.CreatedAt,
+		ID:         r.ID,
+		UserID:     r.UserID,
+		TodoListID: r.TodlistID,
+		Title:      r.Title,
+		Done:       r.Done,
+		Priority:   r.Priority,
+		CreatedAt:  r.CreatedAt,
 	}
 }
