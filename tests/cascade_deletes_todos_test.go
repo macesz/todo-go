@@ -67,22 +67,22 @@ func TestTodoListHandlers_CascadeDeleteDeletesTodos(t *testing.T) {
 
 	// 2. Create one or more todos in that list
 	_, err = testutils.GivenTodo(t, tc.DB, domain.Todo{
-		UserID:    userID,
-		ListID:    listID,
-		Title:     "Todo 1",
-		Done:      false,
-		Priority:  1,
-		CreatedAt: time.Now(),
+		UserID:     userID,
+		TodoListID: listID,
+		Title:      "Todo 1",
+		Done:       false,
+		Priority:   1,
+		CreatedAt:  time.Now(),
 	})
 	require.NoError(t, err)
 
 	_, err = testutils.GivenTodo(t, tc.DB, domain.Todo{
-		UserID:    userID,
-		ListID:    listID,
-		Title:     "Todo 2",
-		Done:      false,
-		Priority:  2,
-		CreatedAt: time.Now(),
+		UserID:     userID,
+		TodoListID: listID,
+		Title:      "Todo 2",
+		Done:       false,
+		Priority:   2,
+		CreatedAt:  time.Now(),
 	})
 	require.NoError(t, err)
 

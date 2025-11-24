@@ -228,7 +228,7 @@ func GivenTodo(t *testing.T, db *sqlx.DB, todo domain.Todo) (int64, error) {
 
 	params := map[string]any{
 		"user_id":     todo.UserID,
-		"todolist_id": todo.ListID,
+		"todolist_id": todo.TodoListID,
 		"title":       todo.Title,
 		"done":        todo.Done,
 		"priority":    todo.Priority,

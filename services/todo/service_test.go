@@ -55,8 +55,8 @@ func TestListTodos(t *testing.T) {
 			fields: fields{},
 			args:   args{ctx: context.Background()},
 			want: []*domain.Todo{
-				{ID: 1, UserID: 1, ListID: 1, Title: "Test Todo 1", Done: false, Priority: 5, CreatedAt: fixedTime},
-				{ID: 2, UserID: 1, ListID: 1, Title: "Test Todo 2", Done: true, Priority: 5, CreatedAt: fixedTime},
+				{ID: 1, UserID: 1, TodoListID: 1, Title: "Test Todo 1", Done: false, Priority: 5, CreatedAt: fixedTime},
+				{ID: 2, UserID: 1, TodoListID: 1, Title: "Test Todo 2", Done: true, Priority: 5, CreatedAt: fixedTime},
 			},
 			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
 				store := mocks.NewTodoStore(tt)
@@ -66,8 +66,8 @@ func TestListTodos(t *testing.T) {
 				})
 
 				store.On("List", ta.ctx, ta.userID, ta.listID).Return([]*domain.Todo{
-					{ID: 1, UserID: 1, ListID: 1, Title: "Test Todo 1", Done: false, Priority: 5, CreatedAt: fixedTime},
-					{ID: 2, UserID: 1, ListID: 1, Title: "Test Todo 2", Done: true, Priority: 5, CreatedAt: fixedTime},
+					{ID: 1, UserID: 1, TodoListID: 1, Title: "Test Todo 1", Done: false, Priority: 5, CreatedAt: fixedTime},
+					{ID: 2, UserID: 1, TodoListID: 1, Title: "Test Todo 2", Done: true, Priority: 5, CreatedAt: fixedTime},
 				}, nil).Once()
 
 				s.Store = store
@@ -146,7 +146,7 @@ func TestCreateTodo(t *testing.T) {
 			validate: func(t *testing.T, ta *args, todo *domain.Todo) {
 				require.Equal(t, int64(1), todo.ID)
 				require.Equal(t, ta.userId, todo.UserID)
-				require.Equal(t, ta.listID, todo.ListID)
+				require.Equal(t, ta.listID, todo.TodoListID)
 				require.Equal(t, ta.title, todo.Title)
 				require.Equal(t, ta.priority, todo.Priority)
 				require.False(t, todo.Done)
@@ -161,7 +161,7 @@ func TestCreateTodo(t *testing.T) {
 				store.On("Create", ta.ctx, ta.listID, mock.MatchedBy(
 					func(todo *domain.Todo) bool {
 						return todo.UserID == ta.userId &&
-							todo.ListID == ta.listID &&
+							todo.TodoListID == ta.listID &&
 							todo.Title == ta.title &&
 							todo.Priority == ta.priority
 					})).Run(func(args mock.Arguments) {
@@ -193,7 +193,7 @@ func TestCreateTodo(t *testing.T) {
 				store.On("Create", ta.ctx, ta.listID, mock.MatchedBy(
 					func(todo *domain.Todo) bool {
 						return todo.UserID == ta.userId &&
-							todo.ListID == ta.listID &&
+							todo.TodoListID == ta.listID &&
 							todo.Title == ta.title &&
 							todo.Priority == ta.priority
 					})).Run(func(args mock.Arguments) {
@@ -383,36 +383,36 @@ func TestUpdateTodo(t *testing.T) {
 				priority: 3,
 			},
 			want: &domain.Todo{
-				ID:        1,
-				UserID:    1,
-				ListID:    testListID,
-				Title:     "Updated Todo",
-				Done:      true,
-				Priority:  3,
-				CreatedAt: fixedTime,
+				ID:         1,
+				UserID:     1,
+				TodoListID: testListID,
+				Title:      "Updated Todo",
+				Done:       true,
+				Priority:   3,
+				CreatedAt:  fixedTime,
 			},
 			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
 				store := mocks.NewTodoStore(tt)
 				tt.Cleanup(func() { store.AssertExpectations(tt) })
 
 				store.On("Get", ta.ctx, ta.id).Return(&domain.Todo{
-					ID:        ta.id,
-					UserID:    ta.userId,
-					ListID:    testListID,
-					Title:     "Test Todo",
-					Done:      false,
-					CreatedAt: fixedTime,
+					ID:         ta.id,
+					UserID:     ta.userId,
+					TodoListID: testListID,
+					Title:      "Test Todo",
+					Done:       false,
+					CreatedAt:  fixedTime,
 				}, nil).Once()
 
 				// When Update is called with the given context, id, title, and done status, return a predefined todo
 				store.On("Update", ta.ctx, ta.id, ta.title, ta.done, ta.priority).Return(&domain.Todo{
-					UserID:    ta.userId,
-					ID:        ta.id,
-					ListID:    ta.listID,
-					Title:     ta.title,
-					Done:      ta.done,
-					Priority:  ta.priority,
-					CreatedAt: fixedTime,
+					UserID:     ta.userId,
+					ID:         ta.id,
+					TodoListID: ta.listID,
+					Title:      ta.title,
+					Done:       ta.done,
+					Priority:   ta.priority,
+					CreatedAt:  fixedTime,
 				}, nil).Once()
 
 				s.Store = store

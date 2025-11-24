@@ -116,13 +116,13 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respTodo := domain.TodoDTO{
-		ID:        todo.ID,
-		UserID:    todo.UserID,
-		ListID:    todo.ListID,
-		Title:     todo.Title,
-		Done:      todo.Done,
-		Priority:  todo.Priority,
-		CreatedAt: todo.CreatedAt.Format(time.RFC3339), // Format time as ISO string
+		ID:         todo.ID,
+		UserID:     todo.UserID,
+		TodoListID: todo.TodoListID,
+		Title:      todo.Title,
+		Done:       todo.Done,
+		Priority:   todo.Priority,
+		CreatedAt:  todo.CreatedAt.Format(time.RFC3339), // Format time as ISO string
 	}
 
 	utils.WriteJSON(w, http.StatusCreated, respTodo)
@@ -143,7 +143,7 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	listID, err := strconv.ParseInt(idrl, 10, 64) // Convert id string to int
+	todolistID, err := strconv.ParseInt(idrl, 10, 64) // Convert id string to int
 	if err != nil {
 		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
 		return
@@ -176,13 +176,13 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 
 	// Map to response DTO
 	respTodo := domain.TodoDTO{
-		ID:        todo.ID,
-		UserID:    todo.UserID,
-		ListID:    listID,
-		Title:     todo.Title,
-		Done:      todo.Done,
-		Priority:  todo.Priority,
-		CreatedAt: todo.CreatedAt.Format(time.RFC3339), // Format time as ISO string
+		ID:         todo.ID,
+		UserID:     todo.UserID,
+		TodoListID: todolistID,
+		Title:      todo.Title,
+		Done:       todo.Done,
+		Priority:   todo.Priority,
+		CreatedAt:  todo.CreatedAt.Format(time.RFC3339), // Format time as ISO string
 	}
 
 	utils.WriteJSON(w, http.StatusOK, respTodo) // Return the todo as JSON
@@ -204,7 +204,7 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	listID, err := strconv.ParseInt(idrl, 10, 64) // Convert id string to int
+	todolistID, err := strconv.ParseInt(idrl, 10, 64) // Convert id string to int
 	if err != nil {
 		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id must be an integer"})
 		return
@@ -256,12 +256,12 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respTodo := domain.TodoDTO{
-		ID:       updated.ID,
-		UserID:   user.ID,
-		ListID:   listID,
-		Title:    updated.Title,
-		Done:     updated.Done,
-		Priority: updated.Priority,
+		ID:         updated.ID,
+		UserID:     user.ID,
+		TodoListID: todolistID,
+		Title:      updated.Title,
+		Done:       updated.Done,
+		Priority:   updated.Priority,
 	}
 
 	utils.WriteJSON(w, http.StatusOK, respTodo) // Return the updated todo as JSON
