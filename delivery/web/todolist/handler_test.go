@@ -98,6 +98,7 @@ func TestList(t *testing.T) {
 func TestGetListByID(t *testing.T) {
 	fixedTime := time.Date(2024, time.January, 1, 12, 0, 0, 0, time.UTC)
 	testUserID := int64(1)
+	testListID := int64(1)
 
 	tests := []struct {
 		name           string
@@ -113,28 +114,28 @@ func TestGetListByID(t *testing.T) {
 			urlParam:       "1",
 			shouldCallMock: true,
 			mockReturn: &domain.TodoList{
-				ID:        1,
+				ID:        testListID,
 				UserID:    testUserID,
 				Title:     "Shopping List",
 				Color:     "#FF5733",
 				Labels:    []string{"groceries"},
 				CreatedAt: fixedTime,
 				Items: []domain.Todo{
-					{ID: 10, UserID: testUserID, Title: "Buy milk", Done: false, Priority: 1, CreatedAt: fixedTime},
+					{ID: 10, UserID: testUserID, TodoListID: testListID, Title: "Buy milk", Done: false, Priority: 1, CreatedAt: fixedTime},
 				},
 			},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id":1,"user_id":1,"title":"Shopping List","color":"#FF5733","labels":["groceries"],"created_at":"2024-01-01T12:00:00Z","items":[{"id":10,"userID":1,"title":"Buy milk","done":false,"priority":1,"created_at":"2024-01-01T12:00:00Z"}]}`,
+			expectedBody:   `{"id":1,"user_id":1,"title":"Shopping List","color":"#FF5733","labels":["groceries"],"created_at":"2024-01-01T12:00:00Z","items":[{"id":10,"user_id":1,"todolist_id":1,"title":"Buy milk","done":false,"priority":1,"created_at":"2024-01-01T12:00:00Z"}]}`,
 		},
 		{
 			name:           "List not found",
 			urlParam:       "999",
 			shouldCallMock: true,
 			mockReturn:     nil,
-			mockError:      domain.ErrNotFound,
+			mockError:      domain.ErrListNotFound,
 			expectedStatus: http.StatusNotFound,
-			expectedBody:   `{"error":"todo not found"}`,
+			expectedBody:   `{"error":"todo list not found"}`,
 		},
 	}
 
@@ -308,9 +309,9 @@ func TestUpdate(t *testing.T) {
 			inputBody:      `{"title":"Updated List","color":"#00FF00","labels":[]}`,
 			shouldCallMock: true,
 			mockReturn:     nil,
-			mockError:      domain.ErrNotFound,
+			mockError:      domain.ErrListNotFound,
 			expectedStatus: http.StatusNotFound,
-			expectedBody:   `{"error":"todo not found"}`,
+			expectedBody:   `{"error":"todo list not found"}`,
 		},
 	}
 

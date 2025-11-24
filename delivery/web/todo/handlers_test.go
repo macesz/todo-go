@@ -48,7 +48,7 @@ func TestListTodos(t *testing.T) {
 			},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `[{"ID":1,"UserID": 1, "ListID": 1, "Title":"Test Todo 1","Done":false,"Priority": 3,"CreatedAt":"2024-01-01T12:00:00Z"}]`,
+			expectedBody:   `[{"ID":1,"UserID": 1, "TodoListID": 1, "Title":"Test Todo 1","Done":false,"Priority": 3,"CreatedAt":"2024-01-01T12:00:00Z"}]`,
 		},
 		{
 			name:           "Service error",
@@ -126,7 +126,7 @@ func TestCreateTodo(t *testing.T) {
 					Once()
 			},
 			expectedStatus: http.StatusCreated,
-			expectedBody:   `{"id":1,"user_id":1,"list_id":1,"title":"New Todo","done":false,"priority":2,"created_at":"2024-01-01T12:00:00Z"}`,
+			expectedBody:   `{"id":1,"user_id":1,"todolist_id":1,"title":"New Todo","done":false,"priority":2,"created_at":"2024-01-01T12:00:00Z"}`,
 		},
 		{
 			name:      "Missing title",
@@ -212,7 +212,7 @@ func TestGetTodo(t *testing.T) {
 			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, TodoListID: testListID, Title: "Test Todo", Done: false, Priority: 3, CreatedAt: fixedTime},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id":1,"user_id":1,"list_id":1,"title":"Test Todo","done":false,"priority":3,"created_at":"2024-01-01T12:00:00Z"}`,
+			expectedBody:   `{"id":1,"user_id":1,"todolist_id":1,"title":"Test Todo","done":false,"priority":3,"created_at":"2024-01-01T12:00:00Z"}`,
 		},
 		{
 			name:           "Todo not found",
@@ -288,7 +288,7 @@ func TestUpdateTodo(t *testing.T) {
 			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, TodoListID: 1, Title: "Updated Todo", Done: true, Priority: 1, CreatedAt: fixedTime},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id":1,"user_id":1,"list_id":1,"title":"Updated Todo","done":true,"priority":1,"created_at":""}`,
+			expectedBody:   `{"id":1,"user_id":1,"todolist_id":1,"title":"Updated Todo","done":true,"priority":1,"created_at":""}`,
 		},
 		{
 			name:           "Todo not found",
