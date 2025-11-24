@@ -55,6 +55,10 @@ func setupAuthTestServer(t *testing.T) (*chi.Mux, *testutils.TestContainer, *jwt
 }
 
 func Test_Auth_Integration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
 	router, tc, tokenAuth := setupAuthTestServer(t)
 	defer testutils.CleanupDB(t, tc.DB)
 

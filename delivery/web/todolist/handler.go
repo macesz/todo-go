@@ -107,12 +107,13 @@ func (h *TodoListHandlers) GetListByID(w http.ResponseWriter, r *http.Request) {
 	itemDTOs := make([]domain.TodoDTO, len(todoList.Items))
 	for i, item := range todoList.Items {
 		itemDTOs[i] = domain.TodoDTO{
-			ID:        item.ID,
-			UserID:    item.UserID,
-			Title:     item.Title,
-			Done:      item.Done,
-			Priority:  item.Priority,
-			CreatedAt: item.CreatedAt.Format(time.RFC3339),
+			ID:         item.ID,
+			UserID:     item.UserID,
+			TodoListID: item.TodoListID,
+			Title:      item.Title,
+			Done:       item.Done,
+			Priority:   item.Priority,
+			CreatedAt:  item.CreatedAt.Format(time.RFC3339),
 		}
 	}
 

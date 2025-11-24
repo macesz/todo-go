@@ -423,10 +423,12 @@ func TestUpdateTodo(t *testing.T) {
 			fields:  fields{},
 			wantErr: true,
 			args: args{
-				ctx:   context.Background(),
-				id:    999,
-				title: "Updated Todo",
-				done:  true,
+				ctx:      context.Background(),
+				userId:   1,
+				id:       999,
+				title:    "Updated Todo",
+				done:     true,
+				priority: 3,
 			},
 			want: nil,
 			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
