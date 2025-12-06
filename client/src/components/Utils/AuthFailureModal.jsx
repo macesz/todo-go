@@ -4,7 +4,7 @@ const AuthFailureModal = () => {
     const navigate = useNavigate();
 
     const handleClick = () => {
-        navigate('/login');
+        navigate('/auth');
     }
 
     return (
@@ -23,4 +23,4 @@ const AuthFailureModal = () => {
     );
 };
 
-export default AuthFailureModal;
+export default AuthFailureModal;;

@@ -1,11 +1,11 @@
-import { useAuth } from "../../context/AuthContext";
 import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { INITIAL_LABELS } from '../../data/MockData.js';
-import { ChevronsRight, Search, CheckSquare, Layout, Plus, Settings, LogOut } from "lucide-react";
+import { ChevronsRight, Search, Settings, LogOut } from "lucide-react";
 import { List, Trash2, Edit3, ChevronDown, ChevronUp } from "lucide-react";
 import MenuItem from "./MenuItem.jsx";
 import LabelItem from "./LabelItem.jsx";
+import { useAuth } from "../../Context/AuthContext.jsx";
 
 
 
@@ -16,7 +16,9 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const [showAllLabels, setShowAllLabels] = useState(false);
 
-  const visibleLabels = showAllLabels ? INITIAL_LABELS : INITIAL_LABELS.slice(0, 5);
+  const safeLabels = INITIAL_LABELS || [];
+
+  const visibleLabels = showAllLabels ? safeLabels : safeLabels.slice(0, 5);
 
 
   return (
@@ -94,7 +96,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
             <ul className="space-y-2">
               {/* Render Visible Labels */}
-              {visibleLabels.map((label) => (
+              {visibleLabels && visibleLabels.map((label) => (
                 <LabelItem
                   key={label.id}
                   label={label}

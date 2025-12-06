@@ -4,7 +4,7 @@ import { Mail, Lock } from 'lucide-react';
 import { FaFacebookF, FaGoogle, FaLinkedinIn } from 'react-icons/fa';
 import SocialButton from '../ui/SocialButton.jsx';
 import InputIcon from '../ui/InputIcon.jsx';
-import { useAuth } from '../../context/AuthContext.jsx';
+import { useAuth } from '../../Context/AuthContext.jsx';
 
 
 

@@ -1,6 +1,6 @@
-import React from 'react';
-import { useAuth } from '../../context/AuthContext.jsx';
-import AuthFailureModal from '../auth/AuthFailureModal.jsx';    
+import { useAuth } from '../../Context/AuthContext.jsx';
+import AuthFailureModal from './AuthFailureModal.jsx';
+
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
