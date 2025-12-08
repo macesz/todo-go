@@ -6,6 +6,7 @@ import { List, Trash2, Edit3, ChevronDown, ChevronUp } from "lucide-react";
 import MenuItem from "./MenuItem.jsx";
 import LabelItem from "./LabelItem.jsx";
 import { useAuth } from "../../Context/AuthContext.jsx";
+import EditLabelsModal from "./EditLabelsModal.jsx";
 
 
 
@@ -15,15 +16,41 @@ const Sidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
 
   const [showAllLabels, setShowAllLabels] = useState(false);
+  const [labels, setLabels] = useState(INITIAL_LABELS || []);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  const safeLabels = INITIAL_LABELS || [];
 
-  const visibleLabels = showAllLabels ? safeLabels : safeLabels.slice(0, 5);
+  const visibleLabels = showAllLabels ? labels : labels.slice(0, 5);
 
+  const handleAddLabel = (name) => {
+    const newLabel = {
+      id: Date.now().toString(),
+      name: name,
+      color: 'bg-gray-200' // Default color
+    };
+    setLabels([...labels, newLabel]);
+  };
+
+  const handleUpdateLabel = (id, newName) => {
+    setLabels(labels.map(l => l.id === id ? { ...l, name: newName } : l));
+  };
+
+  const handleDeleteLabel = (id) => {
+    setLabels(labels.filter(l => l.id !== id));
+  };
 
   return (
 
     <>
+      {/* --- LABEL MODAL COMPONENT  --- */}
+      <EditLabelsModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        labels={labels}
+        onAdd={handleAddLabel}
+        onUpdate={handleUpdateLabel}
+        onDelete={handleDeleteLabel}
+      />
 
       {/* OVERLAY (Mobile Only) */}
       {isOpen && (
@@ -89,7 +116,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Labels</h3>
               {/* Edit Labels (Non-functional as requested) */}
-              <button className="text-gray-400 hover:text-purple-600 transition-colors" title="Edit Labels">
+              <button onClick={() => setIsEditModalOpen(true)} className="text-gray-400 hover:text-purple-600 transition-colors" title="Edit Labels">
                 <Edit3 size={14} />
               </button>
             </div>
