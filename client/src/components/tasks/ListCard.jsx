@@ -42,6 +42,12 @@ const ListCard = ({ list }) => {
         setTodos(todos.filter(todo => todo.id !== id));
     };
 
+    const handleEditTask = (id, newTitle) => {
+        setTodos(todos.map(todo =>
+            todo.id === id ? { ...todo, title: newTitle } : todo
+        ));
+    };
+
     const handleAdd = (e) => {
         if (e.key === 'Enter' && inputValue.trim()) {
             setTodos([...todos, { id: Date.now(), title: inputValue, completed: false }]);
@@ -132,6 +138,7 @@ const ListCard = ({ list }) => {
                                         hoverColor={theme.hover}
                                         onToggle={handleToggle}
                                         onDelete={handleDelete}
+                                        onEdit={handleEditTask}
                                     />
                                 ))}
                             </SortableContext>
@@ -145,7 +152,14 @@ const ListCard = ({ list }) => {
                         {/* Completed Tasks */}
                         <ul className='space-y-1 mb-2 w-full'>
                             {completedTodos.map(item => (
-                                <TaskItem key={item.id} todoItem={item} onToggle={handleToggle} onDelete={handleDelete} checkboxColor={theme.checkbox} hoverColor={theme.hover} />
+                                <TaskItem
+                                    key={item.id}
+                                    todoItem={item}
+                                    onToggle={handleToggle}
+                                    onDelete={handleDelete}
+                                    onEdit={handleEditTask}
+                                    checkboxColor={theme.checkbox}
+                                    hoverColor={theme.hover} />
                             ))}
                         </ul>
                     </div>
