@@ -31,8 +31,8 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 	// r.Group(func(r chi.Router) {
 	// r.Get("/", indexPage)
 	// r.Get("/{AssetUrl}", GetAsset)
-	r.Post("/user", handlers.User.CreateUser) // Create a new user
-	r.Post("/login", handlers.User.Login)     // Login a user
+	r.Post("/auth/register", handlers.User.CreateUser) // Create a new user
+	r.Post("/auth/login", handlers.User.Login)         // Login a user
 	// })
 
 	// ============================================

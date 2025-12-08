@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, PaletteIcon, TagsIcon, Trash2 } from 'lucide-react';
-import TaskItem from './TaskItem';
+import TaskItem from './TodoItem';
 import { COLOR_PALETTE } from '../../data/ColorPalette';
 import {
     DndContext,
@@ -25,7 +25,7 @@ const ListCard = ({ list }) => {
     const [inputValue, setInputValue] = useState("");
     const [activeMenu, setActiveMenu] = useState(null);
 
-    // delete later when backend is conected
+    // TODO delete later when backend is connected
     const [tempColor, setTempColor] = useState(list.color);
 
 

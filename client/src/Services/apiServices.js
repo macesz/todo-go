@@ -103,7 +103,7 @@ export const fetchTodosByListId = async (user, listId) => {
 // Get todo list by label
 export const fetchTodoListByLabel = async (user, label) => {
     try {
-        const response = await api.get(`/lists/label/${label}`, {
+        const response = await api.get(`/lists/${label}`, {
             user
         });
 
@@ -112,6 +112,19 @@ export const fetchTodoListByLabel = async (user, label) => {
         console.error('Error getting todo list by label:', error);
     }
 };
+
+// Get todos on a specific list
+export const fetchTodosInList = async (user, listId) => {
+    try {
+        const response = await api.get(`/lists/${listId}/todos`, {
+            user
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error('Error getting todos in list:', error);
+    }
+}
 
 // Create a new todo in a specific list
 export const createTodoInList = async (user, listId, todoData) => {
