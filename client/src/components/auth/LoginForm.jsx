@@ -1,31 +1,38 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { FaFacebookF, FaGoogle, FaLinkedinIn } from 'react-icons/fa';
 import SocialButton from '../ui/SocialButton.jsx';
 import InputIcon from '../ui/InputIcon.jsx';
 import { useAuth } from '../../Context/AuthContext.jsx';
+import { loginUser } from "../Services/apiService.js";
 
 
 
 export default function LoginForm() {
 
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+
+
     const { login } = useAuth();
     const navigate = useNavigate();
+
+    const togglePasswordVisibility = () => setShowPassword(!showPassword);
+
 
     const handleLogin = async (e) => {
         e.preventDefault();
 
-
-        // TODO: Fetch to Go backend (e.g., POST /login)
-        // const response = await fetch('http://localhost:8080/login', { method: 'POST', body: ... });
-        // const data = await response.json();
-        // if (data.token) login(data.token, data.user);
-
-        // For now, i simulate a successful login:
-        login('fake-token', { name: 'User' }); // Call the login function from context
-
-        navigate('/'); // Redirect to home page after login
+        try {
+            const user = await loginUser(email, password);
+            login(user);
+            navigate('/');
+        } catch (error) {
+            console.error('Login failed:', error);
+            navigate('/login');
+        }
     }
 
     return (
@@ -42,8 +49,27 @@ export default function LoginForm() {
             <span className="text-sm text-gray-400 mb-6">or use your email account</span>
 
             <div className="w-full space-y-4 mb-4">
-                <InputIcon icon={<Mail size={18} />} type="email" placeholder="Email" />
-                <InputIcon icon={<Lock size={18} />} type="password" placeholder="Password" />
+                <InputIcon
+                    icon={<Mail size={18} />}
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                />
+                <InputIcon
+                    icon={<Lock size={18} />}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-purple-600 transition-colors cursor-pointer outline-none"
+                >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
             </div>
 
             <a href="#" className="text-xs text-gray-500 mb-8 hover:text-purple-700 border-b border-transparent hover:border-purple-700 transition-colors">
