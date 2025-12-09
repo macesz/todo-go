@@ -3,7 +3,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useEffect, useRef, useState } from 'react';
 
-const TaskItem = ({ todoItem, onToggle, onDelete, onEdit, checkboxColor, hoverColor }) => {
+export default function TaskItem({ todoItem, onToggle, onDelete, onEdit, checkboxColor, hoverColor }) {
 
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(todoItem.title);
@@ -111,4 +111,3 @@ const TaskItem = ({ todoItem, onToggle, onDelete, onEdit, checkboxColor, hoverCo
     );
 };
 
-export default TaskItem;

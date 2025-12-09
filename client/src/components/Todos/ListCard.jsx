@@ -19,59 +19,105 @@ import {
 import ColorPopUp from '../Ui/ColorPopUp';
 import Modal from '../Utils/Modal';
 import LabelPopUP from '../Ui/LabelPopUP';
+import { useFetchTodoItems } from '../../Hooks/useFetchTodoItems';
+import { useAuth } from '../../Context/AuthContext'; // Import Auth
+import { updateTodoItem, createTodoItem, deleteTodoItem } from '../../Services/apiServices'; // Import API services
+import Loading from '../Loading/Loading.jsx';
+import ErrorComponent from '../Utils/ErrorComponent.jsx';
 
-const ListCard = ({ list }) => {
-    const [todos, setTodos] = useState(list.items);
+export default function ListCard ({ list, onDelete, onUpdate }){
+    const { user } = useAuth();
+    
+    const { todoItems: todos, setTodoItems: setTodos, loading, error } = useFetchTodoItems(list.id);
+
     const [inputValue, setInputValue] = useState("");
     const [activeMenu, setActiveMenu] = useState(null);
 
-    // TODO delete later when backend is connected
-    const [tempColor, setTempColor] = useState(list.color);
+    const [themeColor, setThemeColor] = useState(list.color);
 
 
     const theme = COLOR_PALETTE[list.color] || COLOR_PALETTE.default;
 
-    const handleToggle = (id) => {
+
+    const handleToggleTodo = async(id) => {
+        //Find the todo to toggle
+        const todoToToggle = todos.find(todo => todo.id === id);
+        if (!todoToToggle) return;
+
+        // Optimistic UI Update
+        const previousTodos = [...todos];
         setTodos(todos.map(todo =>
             todo.id === id ? { ...todo, completed: !todo.completed } : todo
         ));
+
+        // API Call
+        try {
+            await updateTodoItem(user, list.id, id, { completed: !todoToToggle.completed });
+        } catch (err) {
+            console.error('Failed to toggle todo:', err);
+            setTodos(previousTodos); // Revert on failure
+        }
     };
 
 
-    const handleDelete = (id) => {
+    const handleDeleteTodo = async(id) => {
+        const previousTodos = [...todos];
+
         setTodos(todos.filter(todo => todo.id !== id));
+
+        // API Call
+        try {
+            deleteTodoItem(user, list.id, id);
+        } catch (err) {
+            console.error('Failed to delete todo:', err);
+            setTodos(previousTodos); // Revert on failure
+        }   
     };
 
-    const handleEditTask = (id, newTitle) => {
+    const handleEditTodo = async(id, newTitle) => {
+        const previousTodos = [...todos];
+
         setTodos(todos.map(todo =>
             todo.id === id ? { ...todo, title: newTitle } : todo
         ));
+
+        // API Call
+        try {
+            updateTodoItem(user, list.id, id, { title: newTitle });
+        } catch (err) {
+            console.error('Failed to edit todo:', err);
+            setTodos(previousTodos); // Revert on failure
+        }   
     };
 
-    const handleAdd = (e) => {
+    const handleAddTodo = async(e) => {
         if (e.key === 'Enter' && inputValue.trim()) {
             setTodos([...todos, { id: Date.now(), title: inputValue, completed: false }]);
             setInputValue("");
         }
+        try {
+            const newTodo = await createTodoItem(user, list.id, { title: inputValue.trim(), completed: false });
+            setTodos(prevTodos => [...prevTodos, newTodo]);
+            setInputValue("");
+        } catch (err) {
+            console.error('Failed to add todo:', err);
+        }
     };
 
     const handleColorChange = (colorKey) => {
-        //TODO call parent to update list color
-        //onUpdateList(list.id, { color: newColorKey })
-
-        console.log("Change color to:", colorKey);
+        const updatedList = { ...list, color: colorKey };
+        onUpdate(updatedList);
+        setActiveMenu(null);
     }
 
     const handleLabelsChange = (newLabels) => {
-        console.log("Updating labels to:", newLabels);
-        // TODO call your parent update function:
-        // onUpdateList(list.id, { labels: newLabels });
+        const updatedList = { ...list, labels: newLabels };
+        onUpdate(updatedList);
         setActiveMenu(null);
     };
 
-    const confirmDelete = () => {
-        // TODO call your parent delete function:
-        // onDeleteList(list.id);
+    const confirmDelete = (listId) => {
+        onDelete(listId);
         setActiveMenu(null);
     }
 
@@ -106,6 +152,9 @@ const ListCard = ({ list }) => {
     const activeTodos = todos.filter(todo => !todo.completed);
     const completedTodos = todos.filter(todo => todo.completed);
 
+    if (loading) return <Loading />;
+    if (error) return <ErrorComponent message={error} />;
+
     return (
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
 
@@ -136,9 +185,9 @@ const ListCard = ({ list }) => {
                                         todoItem={todo}
                                         checkboxColor={theme.checkbox}
                                         hoverColor={theme.hover}
-                                        onToggle={handleToggle}
-                                        onDelete={handleDelete}
-                                        onEdit={handleEditTask}
+                                        onToggle={handleToggleTodo}
+                                        onDelete={handleDeleteTodo}
+                                        onEdit={handleEditTodo}
                                     />
                                 ))}
                             </SortableContext>
@@ -155,9 +204,9 @@ const ListCard = ({ list }) => {
                                 <TaskItem
                                     key={item.id}
                                     todoItem={item}
-                                    onToggle={handleToggle}
-                                    onDelete={handleDelete}
-                                    onEdit={handleEditTask}
+                                    onToggle={handleToggleTodo}
+                                    onDelete={handleDeleteTodo}
+                                    onEdit={handleEditTodo}
                                     checkboxColor={theme.checkbox}
                                     hoverColor={theme.hover} />
                             ))}
@@ -174,7 +223,7 @@ const ListCard = ({ list }) => {
                                 placeholder="Add list item..."
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
-                                onKeyDown={handleAdd}
+                                onKeyDown={handleAddTodo}
                             />
                         </div>
                     </div>
@@ -202,14 +251,13 @@ const ListCard = ({ list }) => {
                                         <PaletteIcon size={16} />
                                     </button>
 
-                                    {/* Note: We use bottom-full to open UPWARDS */}
                                     <div className="absolute bottom-full left-0 mb-2">
                                         <ColorPopUp
                                             isOpen={activeMenu === 'palette'}
                                             onClose={() => setActiveMenu(null)}
-                                            selectedColor={tempColor}
+                                            selectedColor={themeColor}
                                             onSelect={(key) => {
-                                                setTempColor(key); // TODO Update local state, temp DELETE later
+                                                setThemeColor(key); // TODO Update local state, temp DELETE later
                                                 handleColorChange(key);
                                             }}
                                             palette={COLOR_PALETTE}
@@ -249,7 +297,7 @@ const ListCard = ({ list }) => {
                         </div>
                     </div>
 
-                    {/* 5. DELETE MODAL (Outside the overflow hidden areas) */}
+                    {/* 5. DELETE MODAL */}
                     <Modal
                         openModal={activeMenu === 'delete'}
                         closeModal={() => setActiveMenu(null)}
@@ -263,7 +311,7 @@ const ListCard = ({ list }) => {
                                 <button onClick={() => setActiveMenu(null)} className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium">
                                     Cancel
                                 </button>
-                                <button onClick={confirmDelete} className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium shadow-sm">
+                                <button onClick={() => confirmDelete(list.id)} className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium shadow-sm">
                                     Delete
                                 </button>
                             </div>
@@ -275,5 +323,3 @@ const ListCard = ({ list }) => {
         </DndContext>
     );
 };
-
-export default ListCard;

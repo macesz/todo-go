@@ -26,6 +26,6 @@ export const useFetchLists = () => {
         if(user) fetchLists();
     }, [user]);
 
-    return { lists, loading, error }; 
+    return { lists, setLists, loading, error }; 
 
 }

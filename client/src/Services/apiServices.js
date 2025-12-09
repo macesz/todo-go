@@ -9,7 +9,7 @@ const api = axios.create({
     },
 });
 
-api.interceptors.response.use(
+api.interceptors.request.use(
     (config) => {
         if (config.user && config.user.jwt) {
             config.headers['Authorization'] = `Bearer ${config.user.jwt}`;
