@@ -21,7 +21,7 @@ import Modal from '../Utils/Modal';
 import LabelPopUP from '../Ui/LabelPopUP';
 import { useFetchTodoItems } from '../../Hooks/useFetchTodoItems';
 import { useAuth } from '../../Context/AuthContext'; // Import Auth
-import { updateTodoItem, createTodoItem, deleteTodoItem } from '../../Services/apiServices'; // Import API services
+import { updateTodoItem, createTodoInList, deleteTodoItem } from '../../Services/apiServices'; // Import API services
 import Loading from '../Loading/Loading.jsx';
 import ErrorComponent from '../Utils/ErrorComponent.jsx';
 
@@ -96,7 +96,7 @@ export default function ListCard ({ list, onDelete, onUpdate }){
             setInputValue("");
         }
         try {
-            const newTodo = await createTodoItem(user, list.id, { title: inputValue.trim(), completed: false });
+            const newTodo = await createTodoInList(user, list.id, { title: inputValue.trim(), completed: false });
             setTodos(prevTodos => [...prevTodos, newTodo]);
             setInputValue("");
         } catch (err) {

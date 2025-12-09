@@ -183,7 +183,7 @@ export const registerUser = async (userData) => {
     } catch (error) {
         console.error('Error registering user:', error);
     }
-};  
+};
 
 
 export default api;

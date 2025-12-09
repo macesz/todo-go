@@ -5,7 +5,7 @@ import { useFetchLists } from '../Hooks/useFetchLists.jsx';
 import Loading from '../components/Loading/Loading.jsx';
 import ErrorComponent from '../components/Utils/ErrorComponent.jsx';
 import { useAuth } from '../Context/AuthContext';
-import { createTodoList, deleteTodoList, updateTodoList, createTodoItem } from '../Services/apiServices.js';
+import { createTodoList, deleteTodoList, updateTodoList, createTodoInList } from '../Services/apiServices.js';
 import CreateList from '../components/Todos/CreateList.jsx';
 
 
@@ -31,7 +31,7 @@ export default function HomePage() {
             let createdItems = [];
             if (items && items.length > 0) {
                 createdItems = await Promise.all(items.map(item =>
-                    createTodoItem(user, createdList.id, {
+                    createTodoInList(user, createdList.id, {
                         title: item.title,
                         completed: item.completed
                     })

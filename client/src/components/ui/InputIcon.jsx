@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function InputIcon({ icon, type, placeholder, value, onChange }) {
+export default function InputIcon({ icon, type, placeholder, value, onChange, }) {
     return (
         <div className="relative w-full">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
@@ -13,6 +13,7 @@ export default function InputIcon({ icon, type, placeholder, value, onChange }) 
                 value={value}
                 onChange={onChange}
             />
+      
         </div>
     )
 }

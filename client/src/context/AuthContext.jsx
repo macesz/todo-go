@@ -5,17 +5,36 @@ const AuthContext = createContext();
 
 
 const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null); // User state management
+
+    const [user, setUser] = useState(() => {
+        const token = localStorage.getItem("token");
+        const userData = localStorage.getItem("userData");
+
+        if (token && userData) {
+            return { token, ...JSON.parse(userData) };
+        }
+        return null;
+    });
 
 
 
-    const login = (token, userData) => {
-        localStorage.setItem("token", token);
-        setUser({ token, ...userData });
+    const login = (userData) => {
+
+        localStorage.setItem("token", userData.token);
+
+        const userDetails = {
+            id: userData.id,
+            name: userData.name,
+            email: userData.email,
+        }
+        localStorage.setItem("user", JSON.stringify(userDetails));
+
+        setUser(userData);
     };
 
     const logout = () => {
         localStorage.removeItem("token");
+        localStorage.removeItem("user");
         setUser(null);
     };
 
