@@ -4,6 +4,7 @@ import { useAuth } from '../Context/AuthContext';
 
 
 export const useFetchTodoItems = (listId) => {
+
     const [todoItems, setTodoItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -14,7 +15,7 @@ export const useFetchTodoItems = (listId) => {
         const fetchTodoItems = async () => {
             try {
                 setLoading(true);
-                const result = fetchTodosInList(user, listId);
+                const result = await fetchTodosInList(user, listId);
 
                 setTodoItems(result);
             } catch (err) {

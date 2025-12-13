@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from "react";
+import { isUserAuthenticated } from "../util/Util";
 
 
 const AuthContext = createContext();
@@ -7,12 +8,17 @@ const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
 
     const [user, setUser] = useState(() => {
-        const token = localStorage.getItem("token");
-        const userData = localStorage.getItem("userData");
+        if (isUserAuthenticated()) {
+            const token = localStorage.getItem("token");
+            const userData = localStorage.getItem("user");
 
-        if (token && userData) {
-            return { token, ...JSON.parse(userData) };
+            if (userData) {
+                return { token, ...JSON.parse(userData) };
+            }
         }
+
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
         return null;
     });
 
@@ -22,14 +28,9 @@ const AuthProvider = ({ children }) => {
 
         localStorage.setItem("token", userData.token);
 
-        const userDetails = {
-            id: userData.id,
-            name: userData.name,
-            email: userData.email,
-        }
-        localStorage.setItem("user", JSON.stringify(userDetails));
+        localStorage.setItem("user", JSON.stringify(userData.user));
 
-        setUser(userData);
+        setUser({ token: userData.token, ...userData.user });
     };
 
     const logout = () => {

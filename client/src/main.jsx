@@ -11,6 +11,7 @@ import AuthProvider from './Context/AuthContext.jsx';
 import MainLayout from './Layouts/MainLayout.jsx';
 import TodoCard from './Pages/TodoCard.jsx';
 import HomePage from './pages/HomePage.jsx'
+import { ListProvider } from './Context/ListContext.jsx'
 
 const router = createBrowserRouter([
   // Public Routes (No Layout, No Protection)
@@ -30,10 +31,10 @@ const router = createBrowserRouter([
     children: [
       {
         index: true, // Matches path: "/"
-        element: <HomePage />, 
+        element: <HomePage />,
       },
       {
-        path: "lists/:listId", 
+        path: "lists/:listId",
         element: <TodoCard />,
       },
       // Catch all unknown routes and redirect to home
@@ -48,7 +49,9 @@ const router = createBrowserRouter([
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
-    <RouterProvider router={router} />
+      <ListProvider >
+        <RouterProvider router={router} />
+      </ListProvider>
     </AuthProvider>
   </StrictMode>
 )

@@ -20,8 +20,11 @@ export default function LoginForm() {
     const handleLogin = async (e) => {
         e.preventDefault();
 
+        const userData = { email, password };
+
         try {
-            const user = await loginUser(email, password);
+            const user = await loginUser(userData);
+            
             login(user);
             navigate('/');
         } catch (error) {

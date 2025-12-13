@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useNavigate } from 'react-router-dom';
-import { INITIAL_LABELS } from '../../data/MockData.js';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronsRight, Search, Settings, LogOut } from "lucide-react";
 import { List, Trash2, Edit3, ChevronDown, ChevronUp } from "lucide-react";
 import MenuItem from "./MenuItem.jsx";
 import LabelItem from "./LabelItem.jsx";
 import { useAuth } from "../../Context/AuthContext.jsx";
 import EditLabelsModal from "./EditLabelsModal.jsx";
+import { useLists } from "../../Context/ListContext.jsx";
 
 
 
@@ -14,30 +14,33 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation(); // To check current route
+
+
+  const {
+    uniqueLabels,
+    selectedLabel,
+    filterByLabel,
+    clearFilter,
+    deleteLabelGlobal,
+    renameLabelGlobal
+  } = useLists();
 
   const [showAllLabels, setShowAllLabels] = useState(false);
-  const [labels, setLabels] = useState(INITIAL_LABELS || []);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
 
-  const visibleLabels = showAllLabels ? labels : labels.slice(0, 5);
+  const visibleLabels = showAllLabels ? uniqueLabels : uniqueLabels.slice(0, 5);
 
-  const handleAddLabel = (name) => {
-    const newLabel = {
-      id: Date.now().toString(),
-      name: name,
-      color: 'bg-gray-200' // Default color
-    };
-    setLabels([...labels, newLabel]);
+  const handleModalRename = (id, newName) => {
+    // id is the old name in our system
+    renameLabelGlobal(id, newName);
   };
 
-  const handleUpdateLabel = (id, newName) => {
-    setLabels(labels.map(l => l.id === id ? { ...l, name: newName } : l));
+  const handleModalDelete = (id) => {
+    deleteLabelGlobal(id);
   };
 
-  const handleDeleteLabel = (id) => {
-    setLabels(labels.filter(l => l.id !== id));
-  };
 
   return (
 
@@ -46,10 +49,9 @@ const Sidebar = ({ isOpen, onClose }) => {
       <EditLabelsModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        labels={labels}
-        onAdd={handleAddLabel}
-        onUpdate={handleUpdateLabel}
-        onDelete={handleDeleteLabel}
+        labels={uniqueLabels}
+        onUpdate={handleModalRename}
+        onDelete={handleModalDelete}
       />
 
       {/* OVERLAY (Mobile Only) */}
@@ -100,8 +102,12 @@ const Sidebar = ({ isOpen, onClose }) => {
             <MenuItem
               icon={<List />}
               label="Todos"
-              onClick={() => navigate('/')} // Goes to HomePage
-              active={true} // You can make this dynamic based on current route
+              onClick={() => {
+                navigate('/');
+                clearFilter(); // <--- Clear the context filter
+                if (window.innerWidth < 768) onClose();
+              }}
+              active={location.pathname === '/' && selectedLabel === null}
             />
 
             {/* BIN */}
@@ -127,12 +133,17 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <LabelItem
                   key={label.id}
                   label={label}
-                  onClick={() => navigate(`/label/${label.id}`)}
+                  onClick={() => {
+                    navigate('/');
+                    filterByLabel(label.name); // <--- Set context filter
+                    if (window.innerWidth < 768) onClose();
+                  }}
+                  isActive={selectedLabel === label.name}
                 />
               ))}
 
               {/* "More" Button (Only shows if there are more than 5 labels) */}
-              {INITIAL_LABELS.length > 5 && (
+              {uniqueLabels.length > 5 && (
                 <li
                   onClick={() => setShowAllLabels(!showAllLabels)}
                   className="flex items-center gap-3 p-2 rounded-lg cursor-pointer text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"

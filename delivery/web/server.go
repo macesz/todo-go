@@ -31,8 +31,8 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 	// r.Group(func(r chi.Router) {
 	// r.Get("/", indexPage)
 	// r.Get("/{AssetUrl}", GetAsset)
-	r.Post("/auth/register", handlers.User.CreateUser) // Create a new user
-	r.Post("/auth/login", handlers.User.Login)         // Login a user
+	r.Post("/api/auth/register", handlers.User.CreateUser) // Create a new user
+	r.Post("/api/auth/login", handlers.User.Login)         // Login a user
 	// })
 
 	// ============================================
@@ -49,7 +49,7 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 
 		r.Use(middleware.AllowContentType("application/json", "text/xml"))
 
-		r.Route("/lists", func(r chi.Router) {
+		r.Route("/api/lists", func(r chi.Router) {
 			r.Get("/", handlers.TodoList.List)
 			r.Get("/{id}", handlers.TodoList.GetListByID)
 			r.Post("/", handlers.TodoList.Create)
@@ -57,7 +57,7 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 			r.Delete("/{id}", handlers.TodoList.Delete)
 		})
 
-		r.Route("/lists/{listID}/todos", func(r chi.Router) {
+		r.Route("/api/lists/{listID}/todos", func(r chi.Router) {
 			r.Get("/", handlers.Todo.ListTodos)         // List all todos
 			r.Get("/{id}", handlers.Todo.GetTodo)       // Get specific todo by ID
 			r.Post("/", handlers.Todo.CreateTodo)       // Create a new todo
@@ -66,7 +66,7 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 		})
 
 		// changed to /users from /user to follow REST conventions, as we need separation for private and protected routes
-		r.Route("/users", func(r chi.Router) {
+		r.Route("/api/users", func(r chi.Router) {
 			r.Get("/{id}", handlers.User.GetUser)
 			r.Delete("/{id}", handlers.User.DeleteUser) // Delete a user by ID
 		})

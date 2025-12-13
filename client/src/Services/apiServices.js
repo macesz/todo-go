@@ -11,8 +11,8 @@ const api = axios.create({
 
 api.interceptors.request.use(
     (config) => {
-        if (config.user && config.user.jwt) {
-            config.headers['Authorization'] = `Bearer ${config.user.jwt}`;
+        if (config.user && config.user.token) {
+            config.headers['Authorization'] = `Bearer ${config.user.token}`;
             delete config.user;
         }
         return config;
@@ -97,6 +97,7 @@ export const fetchTodosByListId = async (user, listId) => {
         return response.data;
     } catch (error) {
         console.error('Error getting todos by list ID:', error);
+        return [];
     }
 };
 

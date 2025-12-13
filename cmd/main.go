@@ -9,12 +9,14 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/macesz/todo-go/dal/pgtodo"
+	"github.com/macesz/todo-go/dal/pgtodolist"
 	"github.com/macesz/todo-go/dal/pguser"
 	"github.com/macesz/todo-go/delivery/web"
 	"github.com/macesz/todo-go/delivery/web/auth"
 	"github.com/macesz/todo-go/domain"
 	infraPG "github.com/macesz/todo-go/infra/postgres"
 	"github.com/macesz/todo-go/services/todo"
+	"github.com/macesz/todo-go/services/todolist"
 	"github.com/macesz/todo-go/services/user"
 )
 
@@ -56,15 +58,18 @@ func main() {
 
 	// Create DATA STORES
 	todoStore := pgtodo.CreateStore(db)
+	todolistStore := pgtodolist.CreateStore(db)
 	userStore := pguser.CreateStore(db)
 
 	// Create SERVICES
 	// NEW: Create auth at application startup
 	tokenAuth := auth.CreateTokenAuth(cfg.JWTSecret)
 	todoService := todo.NewTodoService(todoStore) // Service with business logic
+	todoListService := todolist.NewTodoListService(todolistStore)
 	userService := user.NewUserService(userStore) // Service with business logic
 
 	services := &web.ServerServices{
+		TodoList:  todoListService,
 		Todo:      todoService,
 		User:      userService,
 		TokenAuth: tokenAuth, // ← Injected dependency
@@ -80,6 +85,5 @@ func main() {
 	web.StartServer(ctx, cfg, services, handlers) // Start the web server
 }
 
-
-// This follows Dependency Inversion Principle - high-level modules (server) depend on abstractions (services struct) 
+// This follows Dependency Inversion Principle - high-level modules (server) depend on abstractions (services struct)
 // rather than creating dependencies internally.

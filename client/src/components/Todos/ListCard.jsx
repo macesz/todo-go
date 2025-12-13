@@ -24,11 +24,13 @@ import { useAuth } from '../../Context/AuthContext'; // Import Auth
 import { updateTodoItem, createTodoInList, deleteTodoItem } from '../../Services/apiServices'; // Import API services
 import Loading from '../Loading/Loading.jsx';
 import ErrorComponent from '../Utils/ErrorComponent.jsx';
+import { useLists } from '../../Context/ListContext.jsx';
 
-export default function ListCard ({ list, onDelete, onUpdate }){
+export default function ListCard({ list }) {
     const { user } = useAuth();
-    
-    const { todoItems: todos, setTodoItems: setTodos, loading, error } = useFetchTodoItems(list.id);
+
+    const { todoItems, setTodoItems, loading, error } = useFetchTodoItems(list.id);
+    const { handleDeleteList, handleUpdateList } = useLists();
 
     const [inputValue, setInputValue] = useState("");
     const [activeMenu, setActiveMenu] = useState(null);
@@ -39,14 +41,14 @@ export default function ListCard ({ list, onDelete, onUpdate }){
     const theme = COLOR_PALETTE[list.color] || COLOR_PALETTE.default;
 
 
-    const handleToggleTodo = async(id) => {
+    const handleToggleTodo = async (id) => {
         //Find the todo to toggle
-        const todoToToggle = todos.find(todo => todo.id === id);
+        const todoToToggle = todoItems.find(todo => todo.id === id);
         if (!todoToToggle) return;
 
         // Optimistic UI Update
-        const previousTodos = [...todos];
-        setTodos(todos.map(todo =>
+        const previousTodos = [...todoItems];
+        setTodoItems(todoItems.map(todo =>
             todo.id === id ? { ...todo, completed: !todo.completed } : todo
         ));
 
@@ -55,29 +57,29 @@ export default function ListCard ({ list, onDelete, onUpdate }){
             await updateTodoItem(user, list.id, id, { completed: !todoToToggle.completed });
         } catch (err) {
             console.error('Failed to toggle todo:', err);
-            setTodos(previousTodos); // Revert on failure
+            setTodoItems(previousTodos); // Revert on failure
         }
     };
 
 
-    const handleDeleteTodo = async(id) => {
-        const previousTodos = [...todos];
+    const handleDeleteTodo = async (id) => {
+        const previousTodos = [...todoItems];
 
-        setTodos(todos.filter(todo => todo.id !== id));
+        setTodoItems(todoItems.filter(todo => todo.id !== id));
 
         // API Call
         try {
             deleteTodoItem(user, list.id, id);
         } catch (err) {
             console.error('Failed to delete todo:', err);
-            setTodos(previousTodos); // Revert on failure
-        }   
+            setTodoItems(previousTodos); // Revert on failure
+        }
     };
 
-    const handleEditTodo = async(id, newTitle) => {
-        const previousTodos = [...todos];
+    const handleEditTodo = async (id, newTitle) => {
+        const previousTodos = [...todoItems];
 
-        setTodos(todos.map(todo =>
+        setTodoItems(todoItems.map(todo =>
             todo.id === id ? { ...todo, title: newTitle } : todo
         ));
 
@@ -86,18 +88,18 @@ export default function ListCard ({ list, onDelete, onUpdate }){
             updateTodoItem(user, list.id, id, { title: newTitle });
         } catch (err) {
             console.error('Failed to edit todo:', err);
-            setTodos(previousTodos); // Revert on failure
-        }   
+            setTodoItems(previousTodos); // Revert on failure
+        }
     };
 
-    const handleAddTodo = async(e) => {
+    const handleAddTodo = async (e) => {
         if (e.key === 'Enter' && inputValue.trim()) {
-            setTodos([...todos, { id: Date.now(), title: inputValue, completed: false }]);
+            setTodoItems([...todoItems, { id: Date.now(), title: inputValue, completed: false }]);
             setInputValue("");
         }
         try {
             const newTodo = await createTodoInList(user, list.id, { title: inputValue.trim(), completed: false });
-            setTodos(prevTodos => [...prevTodos, newTodo]);
+            setTodoItems(prevTodos => [...prevTodos, newTodo]);
             setInputValue("");
         } catch (err) {
             console.error('Failed to add todo:', err);
@@ -106,18 +108,18 @@ export default function ListCard ({ list, onDelete, onUpdate }){
 
     const handleColorChange = (colorKey) => {
         const updatedList = { ...list, color: colorKey };
-        onUpdate(updatedList);
+        handleUpdateList(updatedList);
         setActiveMenu(null);
     }
 
     const handleLabelsChange = (newLabels) => {
         const updatedList = { ...list, labels: newLabels };
-        onUpdate(updatedList);
+        handleUpdateList(updatedList);
         setActiveMenu(null);
     };
 
     const confirmDelete = (listId) => {
-        onDelete(listId);
+        handleDeleteList(listId);
         setActiveMenu(null);
     }
 
@@ -132,7 +134,7 @@ export default function ListCard ({ list, onDelete, onUpdate }){
     );
 
     const getTaskPos = (id) => {
-        return todos.findIndex((t) => t.id === id);
+        return todoItems.findIndex((t) => t.id === id);
     }
 
     const handleDragEnd = (event) => {
@@ -140,7 +142,7 @@ export default function ListCard ({ list, onDelete, onUpdate }){
 
         if (active.id === over.id) return;
 
-        setTodos((todos) => {
+        setTodoItems((todos) => {
             const originalPos = getTaskPos(active.id);
             const newPos = getTaskPos(over.id);
 
@@ -149,8 +151,12 @@ export default function ListCard ({ list, onDelete, onUpdate }){
     };
 
     // Sort: Active first, Completed last
-    const activeTodos = todos.filter(todo => !todo.completed);
-    const completedTodos = todos.filter(todo => todo.completed);
+
+    const safeTodos = Array.isArray(todoItems) ? todoItems : [];
+
+
+    const activeTodos = safeTodos.filter(todo => !todo.completed);
+    const completedTodos = todoItems.filter(todo => todo.completed);
 
     if (loading) return <Loading />;
     if (error) return <ErrorComponent message={error} />;
