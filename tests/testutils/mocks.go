@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-chi/jwtauth/v5"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -251,4 +252,45 @@ func GivenTodo(t *testing.T, db *sqlx.DB, todo domain.Todo) (int64, error) {
 	}
 
 	return id, nil
+}
+
+func GivenUser(t *testing.T, tokenAuth *jwtauth.JWTAuth, db *sqlx.DB, user *domain.User) (map[string]string, error) {
+	t.Helper()
+
+	sql := `INSERT INTO users (name, email, password)
+		VALUES (:name, :email, :password)
+		RETURNING id;`
+
+	params := map[string]any{
+		"id":       user.ID,
+		"name":     user.Name,
+		"email":    user.Email,
+		"password": user.Password,
+	}
+
+	rows, err := db.NamedQueryContext(t.Context(), sql, params)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var id int64
+	if rows.Next() {
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New("failed to retrieve inserted todo ID")
+	}
+
+	user.ID = id
+
+	token, err := GenerateTestToken(tokenAuth, user)
+	if err != nil {
+		t.Error("token err", err)
+	}
+
+	header := AddBerrierTokenToHeader(token, nil)
+
+	return header, nil
 }

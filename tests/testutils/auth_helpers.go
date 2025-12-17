@@ -1,6 +1,8 @@
 package testutils
 
 import (
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/go-chi/jwtauth/v5"
@@ -15,10 +17,22 @@ func GenerateTestToken(tokenAuth *jwtauth.JWTAuth, user *domain.User) (string, e
 
 	// Encode using the library
 	_, tokenString, err := tokenAuth.Encode(claims.ToMap())
+	if err != nil {
+		log.Print(err)
+	}
 	return tokenString, err
 }
 
 // SetupTestAuth creates the JWT for testing
 func SetupTestAuth() *jwtauth.JWTAuth {
 	return auth.CreateTokenAuth("my-super-secret-test-key-12345")
+}
+
+func AddBerrierTokenToHeader(token string, header map[string]string) map[string]string {
+	if header == nil {
+		header = make(map[string]string)
+	}
+	header["Authorization"] = fmt.Sprintf("Bearer %s", token)
+
+	return header
 }

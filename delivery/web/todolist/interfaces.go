@@ -17,3 +17,7 @@ type TodoListService interface {
 type UserService interface {
 	GetUser(ctx context.Context, id int64) (*domain.User, error)
 }
+
+type TodoService interface {
+	ListTodos(ctx context.Context, userID int64, todolistID int64) ([]*domain.Todo, error)
+}

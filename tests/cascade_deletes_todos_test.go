@@ -3,7 +3,6 @@ package tests
 import (
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -17,22 +16,27 @@ func Test_CascadeDeleteDeletesTodos(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	router, tc, userID := setupTodoListTestServer(t)
-	defer testutils.CleanupDB(t, tc.DB)
+	tc, server, services := testutils.ComposeServer(t)
+
+	user := domain.User{
+		Name:     "User One",
+		Email:    "u1@example.com",
+		Password: "pass",
+	}
+	header, err := testutils.GivenUser(t, services.TokenAuth, tc.DB, &user)
+
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// 1. Create a list for this user directly in DB
-	todolistID, err := testutils.GivenTodoLists(t, tc.DB, domain.TodoList{
-		UserID:    userID,
-		Title:     "List with todos",
-		Color:     "#FFFFFF",
-		Labels:    []string{"test"},
-		CreatedAt: time.Now(),
-	})
+	todolistID, _ := testutils.GivenTodoLists(t, tc.DB, domain.TodoList{UserID: user.ID, Title: "User 1 Secrets"})
+
 	require.NoError(t, err)
 
 	// 2. Create one or more todos in that list
 	_, err = testutils.GivenTodo(t, tc.DB, domain.Todo{
-		UserID:     userID,
+		UserID:     user.ID,
 		TodoListID: todolistID,
 		Title:      "Todo 1",
 		Done:       false,
@@ -42,7 +46,7 @@ func Test_CascadeDeleteDeletesTodos(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = testutils.GivenTodo(t, tc.DB, domain.Todo{
-		UserID:     userID,
+		UserID:     user.ID,
 		TodoListID: todolistID,
 		Title:      "Todo 2",
 		Done:       false,
@@ -58,14 +62,10 @@ func Test_CascadeDeleteDeletesTodos(t *testing.T) {
 	require.Equal(t, 2, beforeCount)
 
 	// 3. Delete the list via HTTP
-	url := fmt.Sprintf("/lists/%d", todolistID)
-	req := httptest.NewRequest(http.MethodDelete, url, nil)
-	req = testutils.WithUserContext(req, userID)
-	rr := httptest.NewRecorder()
+	url := fmt.Sprintf("/api/lists/%d", todolistID)
+	resp, _ := testutils.TestRequest(t, server, http.MethodDelete, url, header, nil)
 
-	router.ServeHTTP(rr, req)
-
-	require.Equal(t, http.StatusNoContent, rr.Code)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 	// 4. Assert that todos were deleted (cascade delete)
 	var afterCount int

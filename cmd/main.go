@@ -3,19 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"slices"
 
 	"github.com/jmoiron/sqlx"
 
-	"github.com/macesz/todo-go/dal/pgtodo"
-	"github.com/macesz/todo-go/dal/pguser"
+	"github.com/macesz/todo-go/cmd/composition"
 	"github.com/macesz/todo-go/delivery/web"
-	"github.com/macesz/todo-go/delivery/web/auth"
 	"github.com/macesz/todo-go/domain"
 	infraPG "github.com/macesz/todo-go/infra/postgres"
-	"github.com/macesz/todo-go/services/todo"
-	"github.com/macesz/todo-go/services/user"
 )
 
 func main() {
@@ -54,21 +52,7 @@ func main() {
 		panic(err)
 	}
 
-	// Create DATA STORES
-	todoStore := pgtodo.CreateStore(db)
-	userStore := pguser.CreateStore(db)
-
-	// Create SERVICES
-	// NEW: Create auth at application startup
-	tokenAuth := auth.CreateTokenAuth(cfg.JWTSecret)
-	todoService := todo.NewTodoService(todoStore) // Service with business logic
-	userService := user.NewUserService(userStore) // Service with business logic
-
-	services := &web.ServerServices{
-		Todo:      todoService,
-		User:      userService,
-		TokenAuth: tokenAuth, // ← Injected dependency
-	}
+	services := composition.ComposeServices(cfg, db)
 
 	// Create WEB HANDLERS
 	handlers, err := web.CreateHandlers(ctx, services)
@@ -76,10 +60,18 @@ func main() {
 		panic(err)
 	}
 
-	// Pass services to both handlers AND server
-	web.StartServer(ctx, cfg, services, handlers) // Start the web server
+	// Pass services to both handlers AND router
+	router, err := web.CreateRouter(ctx, cfg, services, handlers)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Start the server
+	log.Printf("listening on :%s", cfg.ServerPort)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", cfg.ServerPort), router); err != nil {
+		log.Fatal(err)
+	}
 }
 
-
-// This follows Dependency Inversion Principle - high-level modules (server) depend on abstractions (services struct) 
+// This follows Dependency Inversion Principle - high-level modules (server) depend on abstractions (services struct)
 // rather than creating dependencies internally.

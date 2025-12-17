@@ -25,8 +25,44 @@ func (h *TodoListHandlers) List(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})
 		return
 	}
-	utils.WriteJSON(w, http.StatusOK, todoLists)
 
+	withItems := r.URL.Query().Get("with_items") == "true"
+
+	respTodoLists := make([]domain.TodoListDTO, 0, len(todoLists))
+	for _, todoList := range todoLists {
+		respTodoList := domain.TodoListDTO{
+			ID:        todoList.ID,
+			UserID:    todoList.UserID,
+			Title:     todoList.Title,
+			Color:     &todoList.Color,
+			Labels:    todoList.Labels,
+			CreatedAt: todoList.CreatedAt.Format(time.RFC3339),
+		}
+
+		if withItems {
+			//calling DB in a loop could be bad for performance (N+1 problem), think about it!
+			todos, err := h.todoService.ListTodos(r.Context(), user.ID, todoList.ID)
+			if err != nil {
+				todos = []*domain.Todo{}
+			}
+
+			itemDTOs := make([]domain.TodoDTO, len(todos))
+			for i, item := range todos {
+				itemDTOs[i] = domain.TodoDTO{
+					ID:         item.ID,
+					UserID:     item.UserID,
+					TodoListID: item.TodoListID,
+					Title:      item.Title,
+					Done:       item.Done,
+					CreatedAt:  item.CreatedAt.Format(time.RFC3339),
+				}
+			}
+			respTodoList.Items = itemDTOs
+		}
+		respTodoLists = append(respTodoLists, respTodoList)
+	}
+
+	utils.WriteJSON(w, http.StatusOK, respTodoLists)
 }
 
 func (h *TodoListHandlers) Create(w http.ResponseWriter, r *http.Request) {
@@ -104,8 +140,13 @@ func (h *TodoListHandlers) GetListByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	itemDTOs := make([]domain.TodoDTO, len(todoList.Items))
-	for i, item := range todoList.Items {
+	todos, err := h.todoService.ListTodos(r.Context(), user.ID, todoList.ID)
+	if err != nil {
+		todos = []*domain.Todo{}
+	}
+
+	itemDTOs := make([]domain.TodoDTO, len(todos))
+	for i, item := range todos {
 		itemDTOs[i] = domain.TodoDTO{
 			ID:         item.ID,
 			UserID:     item.UserID,
@@ -117,7 +158,7 @@ func (h *TodoListHandlers) GetListByID(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Map to response DTO
+	// Create response
 	respTodoList := domain.TodoListDTO{
 		ID:        todoList.ID,
 		UserID:    todoList.UserID,
@@ -127,8 +168,7 @@ func (h *TodoListHandlers) GetListByID(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: todoList.CreatedAt.Format(time.RFC3339),
 		Items:     itemDTOs,
 	}
-	utils.WriteJSON(w, http.StatusOK, respTodoList) // Return the todo as JSON
-
+	utils.WriteJSON(w, http.StatusOK, respTodoList)
 }
 
 func (h *TodoListHandlers) Update(w http.ResponseWriter, r *http.Request) {
