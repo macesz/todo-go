@@ -301,8 +301,8 @@ func (_c *TodoStore_List_Call) RunAndReturn(run func(ctx context.Context, userID
 }
 
 // Update provides a mock function for the type TodoStore
-func (_mock *TodoStore) Update(ctx context.Context, id int64, title string, done bool, priority int64) (*domain.Todo, error) {
-	ret := _mock.Called(ctx, id, title, done, priority)
+func (_mock *TodoStore) Update(ctx context.Context, id int64, title string, done bool) (*domain.Todo, error) {
+	ret := _mock.Called(ctx, id, title, done)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
@@ -310,18 +310,18 @@ func (_mock *TodoStore) Update(ctx context.Context, id int64, title string, done
 
 	var r0 *domain.Todo
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, bool, int64) (*domain.Todo, error)); ok {
-		return returnFunc(ctx, id, title, done, priority)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, bool) (*domain.Todo, error)); ok {
+		return returnFunc(ctx, id, title, done)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, bool, int64) *domain.Todo); ok {
-		r0 = returnFunc(ctx, id, title, done, priority)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, bool) *domain.Todo); ok {
+		r0 = returnFunc(ctx, id, title, done)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*domain.Todo)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int64, string, bool, int64) error); ok {
-		r1 = returnFunc(ctx, id, title, done, priority)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int64, string, bool) error); ok {
+		r1 = returnFunc(ctx, id, title, done)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -338,12 +338,11 @@ type TodoStore_Update_Call struct {
 //   - id int64
 //   - title string
 //   - done bool
-//   - priority int64
-func (_e *TodoStore_Expecter) Update(ctx interface{}, id interface{}, title interface{}, done interface{}, priority interface{}) *TodoStore_Update_Call {
-	return &TodoStore_Update_Call{Call: _e.mock.On("Update", ctx, id, title, done, priority)}
+func (_e *TodoStore_Expecter) Update(ctx interface{}, id interface{}, title interface{}, done interface{}) *TodoStore_Update_Call {
+	return &TodoStore_Update_Call{Call: _e.mock.On("Update", ctx, id, title, done)}
 }
 
-func (_c *TodoStore_Update_Call) Run(run func(ctx context.Context, id int64, title string, done bool, priority int64)) *TodoStore_Update_Call {
+func (_c *TodoStore_Update_Call) Run(run func(ctx context.Context, id int64, title string, done bool)) *TodoStore_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -361,16 +360,11 @@ func (_c *TodoStore_Update_Call) Run(run func(ctx context.Context, id int64, tit
 		if args[3] != nil {
 			arg3 = args[3].(bool)
 		}
-		var arg4 int64
-		if args[4] != nil {
-			arg4 = args[4].(int64)
-		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
-			arg4,
 		)
 	})
 	return _c
@@ -381,7 +375,7 @@ func (_c *TodoStore_Update_Call) Return(todo *domain.Todo, err error) *TodoStore
 	return _c
 }
 
-func (_c *TodoStore_Update_Call) RunAndReturn(run func(ctx context.Context, id int64, title string, done bool, priority int64) (*domain.Todo, error)) *TodoStore_Update_Call {
+func (_c *TodoStore_Update_Call) RunAndReturn(run func(ctx context.Context, id int64, title string, done bool) (*domain.Todo, error)) *TodoStore_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

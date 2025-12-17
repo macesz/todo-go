@@ -55,8 +55,8 @@ func TestListTodos(t *testing.T) {
 			fields: fields{},
 			args:   args{ctx: context.Background()},
 			want: []*domain.Todo{
-				{ID: 1, UserID: 1, TodoListID: 1, Title: "Test Todo 1", Done: false, Priority: 5, CreatedAt: fixedTime},
-				{ID: 2, UserID: 1, TodoListID: 1, Title: "Test Todo 2", Done: true, Priority: 5, CreatedAt: fixedTime},
+				{ID: 1, UserID: 1, TodoListID: 1, Title: "Test Todo 1", Done: false, CreatedAt: fixedTime},
+				{ID: 2, UserID: 1, TodoListID: 1, Title: "Test Todo 2", Done: true, CreatedAt: fixedTime},
 			},
 			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
 				store := mocks.NewTodoStore(tt)
@@ -66,8 +66,8 @@ func TestListTodos(t *testing.T) {
 				})
 
 				store.On("List", ta.ctx, ta.userID, ta.listID).Return([]*domain.Todo{
-					{ID: 1, UserID: 1, TodoListID: 1, Title: "Test Todo 1", Done: false, Priority: 5, CreatedAt: fixedTime},
-					{ID: 2, UserID: 1, TodoListID: 1, Title: "Test Todo 2", Done: true, Priority: 5, CreatedAt: fixedTime},
+					{ID: 1, UserID: 1, TodoListID: 1, Title: "Test Todo 1", Done: false, CreatedAt: fixedTime},
+					{ID: 2, UserID: 1, TodoListID: 1, Title: "Test Todo 2", Done: true, CreatedAt: fixedTime},
 				}, nil).Once()
 
 				s.Store = store
@@ -123,11 +123,10 @@ func TestCreateTodo(t *testing.T) {
 
 	// Define the arguments for the CreateTodo method
 	type args struct {
-		ctx      context.Context
-		userId   int64
-		listID   int64
-		title    string
-		priority int64
+		ctx    context.Context
+		userId int64
+		listID int64
+		title  string
 	}
 
 	// Define the test cases
@@ -142,13 +141,12 @@ func TestCreateTodo(t *testing.T) {
 		{
 			name:   "success",
 			fields: fields{},
-			args:   args{ctx: context.Background(), userId: 1, listID: 1, title: "New Todo", priority: 5},
+			args:   args{ctx: context.Background(), userId: 1, listID: 1, title: "New Todo"},
 			validate: func(t *testing.T, ta *args, todo *domain.Todo) {
 				require.Equal(t, int64(1), todo.ID)
 				require.Equal(t, ta.userId, todo.UserID)
 				require.Equal(t, ta.listID, todo.TodoListID)
 				require.Equal(t, ta.title, todo.Title)
-				require.Equal(t, ta.priority, todo.Priority)
 				require.False(t, todo.Done)
 				require.NotZero(t, todo.CreatedAt)
 			},
@@ -162,8 +160,7 @@ func TestCreateTodo(t *testing.T) {
 					func(todo *domain.Todo) bool {
 						return todo.UserID == ta.userId &&
 							todo.TodoListID == ta.listID &&
-							todo.Title == ta.title &&
-							todo.Priority == ta.priority
+							todo.Title == ta.title
 					})).Run(func(args mock.Arguments) {
 					// Simulate the store setting the ID
 					todo := args.Get(2).(*domain.Todo)
@@ -177,11 +174,10 @@ func TestCreateTodo(t *testing.T) {
 			name:   "store error",
 			fields: fields{},
 			args: args{
-				ctx:      context.Background(),
-				userId:   1,
-				listID:   1,
-				title:    "New Todo",
-				priority: 5,
+				ctx:    context.Background(),
+				userId: 1,
+				listID: 1,
+				title:  "New Todo",
 			},
 			wantErr: true,
 			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
@@ -194,8 +190,7 @@ func TestCreateTodo(t *testing.T) {
 					func(todo *domain.Todo) bool {
 						return todo.UserID == ta.userId &&
 							todo.TodoListID == ta.listID &&
-							todo.Title == ta.title &&
-							todo.Priority == ta.priority
+							todo.Title == ta.title
 					})).Run(func(args mock.Arguments) {
 					// Simulate the store setting the ID
 					todo := args.Get(2).(*domain.Todo)
@@ -219,7 +214,7 @@ func TestCreateTodo(t *testing.T) {
 
 			tc.initMocks(t, &tc.args, s)
 
-			got, err := s.CreateTodo(tc.args.ctx, tc.args.userId, tc.args.listID, tc.args.title, tc.args.priority)
+			got, err := s.CreateTodo(tc.args.ctx, tc.args.userId, tc.args.listID, tc.args.title)
 
 			if tc.wantErr {
 				require.Error(t, err)
@@ -349,13 +344,12 @@ func TestUpdateTodo(t *testing.T) {
 	// Define the arguments for the UpdateTodo method
 	// This allows us to pass different contexts, ids, titles, and done statuses for each test case
 	type args struct {
-		ctx      context.Context
-		userId   int64
-		listID   int64
-		id       int64
-		title    string
-		done     bool
-		priority int64
+		ctx    context.Context
+		userId int64
+		listID int64
+		id     int64
+		title  string
+		done   bool
 	}
 
 	fixedTime := time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)
@@ -374,13 +368,12 @@ func TestUpdateTodo(t *testing.T) {
 			fields:  fields{},
 			wantErr: false,
 			args: args{
-				ctx:      context.Background(),
-				userId:   1,
-				listID:   1,
-				id:       1,
-				title:    "Updated Todo",
-				done:     true,
-				priority: 3,
+				ctx:    context.Background(),
+				userId: 1,
+				listID: 1,
+				id:     1,
+				title:  "Updated Todo",
+				done:   true,
 			},
 			want: &domain.Todo{
 				ID:         1,
@@ -388,7 +381,6 @@ func TestUpdateTodo(t *testing.T) {
 				TodoListID: testListID,
 				Title:      "Updated Todo",
 				Done:       true,
-				Priority:   3,
 				CreatedAt:  fixedTime,
 			},
 			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
@@ -405,13 +397,12 @@ func TestUpdateTodo(t *testing.T) {
 				}, nil).Once()
 
 				// When Update is called with the given context, id, title, and done status, return a predefined todo
-				store.On("Update", ta.ctx, ta.id, ta.title, ta.done, ta.priority).Return(&domain.Todo{
+				store.On("Update", ta.ctx, ta.id, ta.title, ta.done).Return(&domain.Todo{
 					UserID:     ta.userId,
 					ID:         ta.id,
 					TodoListID: ta.listID,
 					Title:      ta.title,
 					Done:       ta.done,
-					Priority:   ta.priority,
 					CreatedAt:  fixedTime,
 				}, nil).Once()
 
@@ -423,12 +414,11 @@ func TestUpdateTodo(t *testing.T) {
 			fields:  fields{},
 			wantErr: true,
 			args: args{
-				ctx:      context.Background(),
-				userId:   1,
-				id:       999,
-				title:    "Updated Todo",
-				done:     true,
-				priority: 3,
+				ctx:    context.Background(),
+				userId: 1,
+				id:     999,
+				title:  "Updated Todo",
+				done:   true,
 			},
 			want: nil,
 			initMocks: func(tt *testing.T, ta *args, s *TodoService) {
@@ -442,7 +432,7 @@ func TestUpdateTodo(t *testing.T) {
 					Done:   false,
 				}, nil).Once()
 
-				store.On("Update", ta.ctx, ta.id, ta.title, ta.done, ta.priority).Return((*domain.Todo)(nil), errors.New("not found")).Once()
+				store.On("Update", ta.ctx, ta.id, ta.title, ta.done).Return((*domain.Todo)(nil), errors.New("not found")).Once()
 
 				s.Store = store
 			},
@@ -460,7 +450,7 @@ func TestUpdateTodo(t *testing.T) {
 
 			tc.initMocks(t, &tc.args, s)
 
-			got, err := s.UpdateTodo(tc.args.ctx, tc.args.userId, tc.args.id, tc.args.title, tc.args.done, tc.args.priority)
+			got, err := s.UpdateTodo(tc.args.ctx, tc.args.userId, tc.args.id, tc.args.title, tc.args.done)
 
 			require.Equal(t, tc.want, got)
 			require.Equal(t, tc.wantErr, err != nil)

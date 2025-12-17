@@ -153,7 +153,6 @@ func (h *TodoListHandlers) GetListByID(w http.ResponseWriter, r *http.Request) {
 			TodoListID: item.TodoListID,
 			Title:      item.Title,
 			Done:       item.Done,
-			Priority:   item.Priority,
 			CreatedAt:  item.CreatedAt.Format(time.RFC3339),
 		}
 	}

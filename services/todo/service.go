@@ -28,16 +28,12 @@ func (s *TodoService) ListTodos(ctx context.Context, userID int64, todolistID in
 // Like a service method in Java or JS
 // Here we could add more business logic if needed
 // For example, checking for duplicates, logging, etc.
-func (s *TodoService) CreateTodo(ctx context.Context, userID int64, todolistID int64, title string, priority int64) (*domain.Todo, error) {
+func (s *TodoService) CreateTodo(ctx context.Context, userID int64, todolistID int64, title string) (*domain.Todo, error) {
 	// Validate title
 	if title == "" {
 		return nil, domain.ErrInvalidTitle
 	}
 
-	// Validate priority
-	if priority < 1 || priority > 5 {
-		return nil, fmt.Errorf("priority must be between 1 and 5: %w", domain.ErrInvalidInput)
-	}
 	createdAt := time.Now()
 
 	todo := &domain.Todo{
@@ -45,7 +41,6 @@ func (s *TodoService) CreateTodo(ctx context.Context, userID int64, todolistID i
 		TodoListID: todolistID,
 		Title:      title,
 		Done:       false,
-		Priority:   priority,
 		CreatedAt:  createdAt,
 	}
 
@@ -82,11 +77,7 @@ func (s *TodoService) GetTodo(ctx context.Context, userID int64, id int64) (*dom
 
 // UpdateTodo updates an existing todo by ID
 
-func (s *TodoService) UpdateTodo(ctx context.Context, userID int64, id int64, title string, done bool, priority int64) (*domain.Todo, error) {
-
-	if priority < 1 || priority > 5 {
-		return nil, fmt.Errorf("priority must be between 1 and 5: %w", domain.ErrInvalidInput)
-	}
+func (s *TodoService) UpdateTodo(ctx context.Context, userID int64, id int64, title string, done bool) (*domain.Todo, error) {
 
 	_, err := s.GetTodo(ctx, userID, id)
 	if err != nil {
@@ -94,7 +85,7 @@ func (s *TodoService) UpdateTodo(ctx context.Context, userID int64, id int64, ti
 		return nil, err
 	}
 
-	updated, err := s.Store.Update(ctx, id, title, done, priority)
+	updated, err := s.Store.Update(ctx, id, title, done)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrNotFound

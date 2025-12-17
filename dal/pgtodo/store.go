@@ -86,7 +86,6 @@ func (s *Store) Create(ctx context.Context, todolistID int64, todo *domain.Todo)
 		"user_id":     todo.UserID,
 		"todolist_id": todolistID,
 		"title":       todo.Title,
-		"priority":    todo.Priority,
 		"created_at":  todo.CreatedAt,
 	}
 
@@ -153,7 +152,7 @@ func (s *Store) Get(ctx context.Context, id int64) (*domain.Todo, error) {
 	return row.ToDomain(), nil
 }
 
-func (s *Store) Update(ctx context.Context, id int64, title string, done bool, priority int64) (*domain.Todo, error) {
+func (s *Store) Update(ctx context.Context, id int64, title string, done bool) (*domain.Todo, error) {
 	templateParams := map[string]any{}
 
 	querystr, err := pkg.PrepareQuery(s.queryTemplates[updateTodoQuery], templateParams)
@@ -162,10 +161,9 @@ func (s *Store) Update(ctx context.Context, id int64, title string, done bool, p
 	}
 
 	queryParams := map[string]any{
-		"id":       id,
-		"title":    title,
-		"done":     done,
-		"priority": priority,
+		"id":    id,
+		"title": title,
+		"done":  done,
 	}
 
 	result, err := s.db.NamedExecContext(ctx, querystr, queryParams)
