@@ -123,12 +123,12 @@ func TestGetListByID(t *testing.T) {
 				Labels:    []string{"groceries"},
 				CreatedAt: fixedTime,
 				Items: []domain.Todo{
-					{ID: 10, UserID: testUserID, TodoListID: testListID, Title: "Buy milk", Done: false, Priority: 1, CreatedAt: fixedTime},
+					{ID: 10, UserID: testUserID, TodoListID: testListID, Title: "Buy milk", Done: false, CreatedAt: fixedTime},
 				},
 			},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id":1,"user_id":1,"title":"Shopping List","color":"#FF5733","labels":["groceries"],"created_at":"2024-01-01T12:00:00Z","items":[{"id":10,"user_id":1,"todolist_id":1,"title":"Buy milk","done":false,"priority":1,"created_at":"2024-01-01T12:00:00Z"}]}`,
+			expectedBody:   `{"id":1,"user_id":1,"title":"Shopping List","color":"#FF5733","labels":["groceries"],"created_at":"2024-01-01T12:00:00Z","items":[{"id":10,"user_id":1,"todolist_id":1,"title":"Buy milk","done":false,"created_at":"2024-01-01T12:00:00Z"}]}`,
 		},
 		{
 			name:           "List not found",

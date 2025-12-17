@@ -1,4 +1,4 @@
-SELECT user_id, id, title, done, priority, created_at
+SELECT user_id, id, title, done, created_at
 FROM todos
 WHERE
  id = :id;

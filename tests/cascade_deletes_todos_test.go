@@ -40,7 +40,6 @@ func Test_CascadeDeleteDeletesTodos(t *testing.T) {
 		TodoListID: todolistID,
 		Title:      "Todo 1",
 		Done:       false,
-		Priority:   1,
 		CreatedAt:  time.Now(),
 	})
 	require.NoError(t, err)
@@ -50,7 +49,6 @@ func Test_CascadeDeleteDeletesTodos(t *testing.T) {
 		TodoListID: todolistID,
 		Title:      "Todo 2",
 		Done:       false,
-		Priority:   2,
 		CreatedAt:  time.Now(),
 	})
 	require.NoError(t, err)

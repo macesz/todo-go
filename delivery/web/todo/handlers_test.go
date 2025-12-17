@@ -46,11 +46,11 @@ func TestListTodos(t *testing.T) {
 		{
 			name: "One todo",
 			mockReturn: []*domain.Todo{
-				{ID: 1, UserID: testUserID, TodoListID: testListID, Title: "Test Todo 1", Done: false, Priority: 3, CreatedAt: fixedTime},
+				{ID: 1, UserID: testUserID, TodoListID: testListID, Title: "Test Todo 1", Done: false, CreatedAt: fixedTime},
 			},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `[{"ID":1,"UserID": 1, "TodoListID": 1, "Title":"Test Todo 1","Done":false,"Priority": 3,"CreatedAt":"2024-01-01T12:00:00Z"}]`,
+			expectedBody:   `[{"ID":1,"UserID": 1, "TodoListID": 1, "Title":"Test Todo 1","Done":false, "CreatedAt":"2024-01-01T12:00:00Z"}]`,
 		},
 		{
 			name:           "Service error",
@@ -108,7 +108,7 @@ func TestCreateTodo(t *testing.T) {
 	}{
 		{
 			name:      "Valid input",
-			inputBody: `{"title": "New Todo", "priority": 2}`,
+			inputBody: `{"title": "New Todo"}`,
 			setupUserMock: func(m *mocks.UserService) {
 				m.On("GetUser", mock.Anything, testUserID).
 					Return(&domain.User{ID: testUserID, Name: "Test User", Email: "test@example.com"}, nil).
@@ -122,17 +122,16 @@ func TestCreateTodo(t *testing.T) {
 						TodoListID: testListID,
 						Title:      "New Todo",
 						Done:       false,
-						Priority:   2,
 						CreatedAt:  fixedTime,
 					}, nil).
 					Once()
 			},
 			expectedStatus: http.StatusCreated,
-			expectedBody:   `{"id":1,"user_id":1,"todolist_id":1,"title":"New Todo","done":false,"priority":2,"created_at":"2024-01-01T12:00:00Z"}`,
+			expectedBody:   `{"id":1,"user_id":1,"todolist_id":1,"title":"New Todo","done":false, "created_at":"2024-01-01T12:00:00Z"}`,
 		},
 		{
 			name:      "Missing title",
-			inputBody: `{"title":"", "priority": 2}`,
+			inputBody: `{"title":""}`,
 			setupUserMock: func(m *mocks.UserService) {
 				m.On("GetUser", mock.Anything, testUserID).
 					Return(&domain.User{ID: testUserID, Name: "Test User", Email: "test@example.com"}, nil).
@@ -211,10 +210,10 @@ func TestGetTodo(t *testing.T) {
 			name:           "Valid ID",
 			urlParam:       "1",
 			shouldCallMock: true,
-			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, TodoListID: testListID, Title: "Test Todo", Done: false, Priority: 3, CreatedAt: fixedTime},
+			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, TodoListID: testListID, Title: "Test Todo", Done: false, CreatedAt: fixedTime},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id":1,"user_id":1,"todolist_id":1,"title":"Test Todo","done":false,"priority":3,"created_at":"2024-01-01T12:00:00Z"}`,
+			expectedBody:   `{"id":1,"user_id":1,"todolist_id":1,"title":"Test Todo","done":false, "created_at":"2024-01-01T12:00:00Z"}`,
 		},
 		{
 			name:           "Todo not found",
@@ -285,17 +284,17 @@ func TestUpdateTodo(t *testing.T) {
 		{
 			name:           "Valid input",
 			urlParam:       "1",
-			inputBody:      `{"title":"Updated Todo","done":true,"priority":1}`,
+			inputBody:      `{"title":"Updated Todo","done":true,}`,
 			shouldCallMock: true,
-			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, TodoListID: 1, Title: "Updated Todo", Done: true, Priority: 1, CreatedAt: fixedTime},
+			mockReturn:     &domain.Todo{ID: 1, UserID: testUserID, TodoListID: 1, Title: "Updated Todo", Done: true, CreatedAt: fixedTime},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id":1,"user_id":1,"todolist_id":1,"title":"Updated Todo","done":true,"priority":1,"created_at":""}`,
+			expectedBody:   `{"id":1,"user_id":1,"todolist_id":1,"title":"Updated Todo","done":true,"created_at":""}`,
 		},
 		{
 			name:           "Todo not found",
 			urlParam:       "1",
-			inputBody:      `{"title":"Updated Todo","done":true,"priority":1}`,
+			inputBody:      `{"title":"Updated Todo","done":true,}`,
 			shouldCallMock: true,
 			mockReturn:     nil,
 			mockError:      domain.ErrNotFound,
@@ -316,13 +315,9 @@ func TestUpdateTodo(t *testing.T) {
 				json.Unmarshal([]byte(tt.inputBody), &input)
 				expectedTitle := input["title"].(string)
 				expectedDone := input["done"].(bool)
-				expectedPriority := int64(1)
-				if p, ok := input["priority"].(float64); ok {
-					expectedPriority = int64(p)
-				}
 
-				// Updated to match new signature: UpdateTodo(ctx, userID, todoID, title, done, priority)
-				mockService.On("UpdateTodo", mock.Anything, testUserID, expectedID, expectedTitle, expectedDone, expectedPriority).
+				// Updated to match new signature: UpdateTodo(ctx, userID, todoID, title, done, )
+				mockService.On("UpdateTodo", mock.Anything, testUserID, expectedID, expectedTitle, expectedDone).
 					Return(tt.mockReturn, tt.mockError).
 					Once()
 			}

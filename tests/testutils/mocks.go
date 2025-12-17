@@ -223,8 +223,8 @@ func GivenTodo(t *testing.T, db *sqlx.DB, todo domain.Todo) (int64, error) {
 		todo.CreatedAt = time.Now()
 	}
 
-	sql := `INSERT INTO todos (user_id, todolist_id, title, done, priority, created_at)
-			VALUES (:user_id, :todolist_id, :title, :done, :priority, :created_at)
+	sql := `INSERT INTO todos (user_id, todolist_id, title, done, created_at)
+			VALUES (:user_id, :todolist_id, :title, :done, :created_at)
 			RETURNING id;`
 
 	params := map[string]any{
@@ -232,7 +232,6 @@ func GivenTodo(t *testing.T, db *sqlx.DB, todo domain.Todo) (int64, error) {
 		"todolist_id": todo.TodoListID,
 		"title":       todo.Title,
 		"done":        todo.Done,
-		"priority":    todo.Priority,
 		"created_at":  todo.CreatedAt,
 	}
 
