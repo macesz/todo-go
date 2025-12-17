@@ -1,3 +1,5 @@
+//go:build unittest
+
 package todolist
 
 import (

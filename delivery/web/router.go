@@ -2,9 +2,6 @@ package web
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"net/http"
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -13,9 +10,7 @@ import (
 	"github.com/macesz/todo-go/domain"
 )
 
-// StartServer initializes the router, sets up routes, and starts the HTTP server.
-// Accepts services parameter (dependency injection)
-func StartServer(ctx context.Context, conf domain.Config, services *ServerServices, handlers *Handlers) {
+func CreateRouter(ctx context.Context, conf domain.Config, services *ServerServices, handlers *Handlers) (*chi.Mux, error) {
 	// Chi router: like Express app or Java Servlet
 	r := chi.NewRouter()
 
@@ -31,8 +26,8 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 	// r.Group(func(r chi.Router) {
 	// r.Get("/", indexPage)
 	// r.Get("/{AssetUrl}", GetAsset)
-	r.Post("/user", handlers.User.CreateUser) // Create a new user
-	r.Post("/login", handlers.User.Login)     // Login a user
+	r.Post("/api/auth/register", handlers.User.CreateUser) // Create a new user
+	r.Post("/api/auth/login", handlers.User.Login)         // Login a user
 	// })
 
 	// ============================================
@@ -49,7 +44,7 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 
 		r.Use(middleware.AllowContentType("application/json", "text/xml"))
 
-		r.Route("/lists", func(r chi.Router) {
+		r.Route("/api/lists", func(r chi.Router) {
 			r.Get("/", handlers.TodoList.List)
 			r.Get("/{id}", handlers.TodoList.GetListByID)
 			r.Post("/", handlers.TodoList.Create)
@@ -57,7 +52,7 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 			r.Delete("/{id}", handlers.TodoList.Delete)
 		})
 
-		r.Route("/lists/{listID}/todos", func(r chi.Router) {
+		r.Route("/api/lists/{listID}/todos", func(r chi.Router) {
 			r.Get("/", handlers.Todo.ListTodos)         // List all todos
 			r.Get("/{id}", handlers.Todo.GetTodo)       // Get specific todo by ID
 			r.Post("/", handlers.Todo.CreateTodo)       // Create a new todo
@@ -66,15 +61,11 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 		})
 
 		// changed to /users from /user to follow REST conventions, as we need separation for private and protected routes
-		r.Route("/users", func(r chi.Router) {
+		r.Route("/api/users", func(r chi.Router) {
 			r.Get("/{id}", handlers.User.GetUser)
 			r.Delete("/{id}", handlers.User.DeleteUser) // Delete a user by ID
 		})
 	})
 
-	// Start the server
-	log.Printf("listening on :%s", conf.ServerPort)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", conf.ServerPort), r); err != nil {
-		log.Fatal(err)
-	}
+	return r, nil
 }
