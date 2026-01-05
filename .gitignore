@@ -7,5 +7,3 @@ dist
 build
 .env
 .envrc
-
-client
