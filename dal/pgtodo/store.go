@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"text/template"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/macesz/todo-go/domain"
@@ -86,7 +87,8 @@ func (s *Store) Create(ctx context.Context, todolistID int64, todo *domain.Todo)
 		"user_id":     todo.UserID,
 		"todolist_id": todolistID,
 		"title":       todo.Title,
-		"created_at":  todo.CreatedAt,
+		"done":        todo.Done,
+		"created_at":  time.Now(),
 	}
 
 	// NamedQueryContext ✅ - Single row with RETURNING clause
