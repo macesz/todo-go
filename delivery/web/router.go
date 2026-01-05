@@ -2,9 +2,6 @@ package web
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"net/http"
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -13,9 +10,7 @@ import (
 	"github.com/macesz/todo-go/domain"
 )
 
-// StartServer initializes the router, sets up routes, and starts the HTTP server.
-// Accepts services parameter (dependency injection)
-func StartServer(ctx context.Context, conf domain.Config, services *ServerServices, handlers *Handlers) {
+func CreateRouter(ctx context.Context, conf domain.Config, services *ServerServices, handlers *Handlers) (*chi.Mux, error) {
 	// Chi router: like Express app or Java Servlet
 	r := chi.NewRouter()
 
@@ -72,9 +67,5 @@ func StartServer(ctx context.Context, conf domain.Config, services *ServerServic
 		})
 	})
 
-	// Start the server
-	log.Printf("listening on :%s", conf.ServerPort)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", conf.ServerPort), r); err != nil {
-		log.Fatal(err)
-	}
+	return r, nil
 }

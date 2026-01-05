@@ -34,7 +34,7 @@ type Handlers struct {
 }
 
 func CreateHandlers(ctx context.Context, services *ServerServices) (*Handlers, error) {
-	todoListHandler := todolist.NewHandlers(services.TodoList, services.User)
+	todoListHandler := todolist.NewHandlers(services.TodoList, services.Todo, services.User)
 	todoHandler := todo.NewHandlers(services.Todo, services.User)      // Create handlers with the service
 	userHandler := user.NewHandlers(services.User, services.TokenAuth) // Create handlers with the service
 
