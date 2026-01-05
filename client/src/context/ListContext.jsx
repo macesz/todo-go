@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useMemo } from 'react';
+import { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { createTodoList, createTodoInList, updateTodoList, deleteTodoList } from '../Services/apiServices';
 import { useFetchLists } from '../Hooks/useFetchLists';
@@ -13,6 +13,12 @@ export const ListProvider = ({ children }) => {
 
     console.log("Lists", lists);
 
+    const updateListItemsLocally = useCallback((listId, newItems) => {
+        setLists(prevLists => prevLists.map(list =>
+            list.id === listId ? { ...list, items: newItems } : list
+        ));
+    }, [setLists]);
+
 
     // Generate unique labels from lists
     const uniqueLabels = useMemo(() => {
@@ -21,8 +27,7 @@ export const ListProvider = ({ children }) => {
         let color = 'bg-accent'; // default color
 
         lists.forEach(list => {
-            if (list.labels && Array.isArray(list.labels)) {
-                color = list.color
+            if (list.labels) {
                 list.labels.forEach(label => labelsSet.add(label));
             }
         });
@@ -60,6 +65,7 @@ export const ListProvider = ({ children }) => {
 
 
 
+
     // Create, Update, Delete Handlers
     const handleCreateList = async (listData) => {
         const { items, ...listDetails } = listData;
@@ -74,7 +80,7 @@ export const ListProvider = ({ children }) => {
                 createdItems = await Promise.all(items.map(item =>
                     createTodoInList(user, createdList.id, {
                         title: item.title,
-                        completed: item.completed
+                        done: item.done
                     })
                 ));
             }
@@ -91,25 +97,24 @@ export const ListProvider = ({ children }) => {
     }
 
 
-    const handleDeleteList = async (listId) => {
+    const handleDeleteList = useCallback(async (listId) => {
         if (!window.confirm("Are you sure you want to delete this list?")) return;
-
         try {
             await deleteTodoList(user, listId);
             setLists(prevLists => prevLists.filter(list => list.id !== listId));
         } catch (err) {
             console.error('Failed to delete list:', err);
         }
-    };
+    }, [user, setLists]);
 
-    const handleUpdateList = async (updatedList) => {
+    const handleUpdateList = useCallback(async (updatedList) => {
         try {
             const updated = await updateTodoList(user, updatedList.id, updatedList);
             setLists(prevLists => prevLists.map(list => list.id === updated.id ? updated : list));
         } catch (err) {
             console.error('Failed to update list:', err);
         }
-    };
+    }, [user, setLists]);
 
     // Rename Labels
     const renameLabelGlobally = async (oldName, newName) => {
@@ -139,6 +144,7 @@ export const ListProvider = ({ children }) => {
         <ListContext.Provider
             value={{
                 lists: filteredList,
+                updateListItemsLocally,
                 loading,
                 error,
                 uniqueLabels,
@@ -149,7 +155,7 @@ export const ListProvider = ({ children }) => {
                 handleDeleteList,
                 handleUpdateList,
                 renameLabelGlobally,
-                deleteLabelGlobally
+                deleteLabelGlobally,
             }}
         >
             {children}

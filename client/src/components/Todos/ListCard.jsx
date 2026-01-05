@@ -19,19 +19,14 @@ import {
 import ColorPopUp from '../Ui/ColorPopUp';
 import Modal from '../Utils/Modal';
 import LabelPopUP from '../Ui/LabelPopUP';
-import { useFetchTodoItems } from '../../Hooks/useFetchTodoItems';
 import { useAuth } from '../../Context/AuthContext'; // Import Auth
-import { updateTodoItem, createTodoInList, deleteTodoItem } from '../../Services/apiServices'; // Import API services
-import Loading from '../Loading/Loading.jsx';
-import ErrorComponent from '../Utils/ErrorComponent.jsx';
 import { useLists } from '../../Context/ListContext.jsx';
+import { useTodoItems } from '../../Hooks/useTodoItems.jsx'
 
 export default function ListCard({ list }) {
     const { user } = useAuth();
 
-    const { todoItems, setTodoItems, loading, error } = useFetchTodoItems(list.id);
-    const { handleDeleteList, handleUpdateList } = useLists();
-
+    const { updateListItemsLocally, handleDeleteList, handleUpdateList } = useLists();
     const [inputValue, setInputValue] = useState("");
     const [activeMenu, setActiveMenu] = useState(null);
 
@@ -41,68 +36,19 @@ export default function ListCard({ list }) {
     const theme = COLOR_PALETTE[list.color] || COLOR_PALETTE.default;
 
 
-    const handleToggleTodo = async (id) => {
-        //Find the todo to toggle
-        const todoToToggle = todoItems.find(todo => todo.id === id);
-        if (!todoToToggle) return;
+    const {
+        todoItems,
+        setTodoItems,
+        addTodo,
+        toggleTodo,
+        deleteTodo,
+        editTodo
+    } = useTodoItems(list.items, list.id, user, updateListItemsLocally);
 
-        // Optimistic UI Update
-        const previousTodos = [...todoItems];
-        setTodoItems(todoItems.map(todo =>
-            todo.id === id ? { ...todo, completed: !todo.completed } : todo
-        ));
-
-        // API Call
-        try {
-            await updateTodoItem(user, list.id, id, { completed: !todoToToggle.completed });
-        } catch (err) {
-            console.error('Failed to toggle todo:', err);
-            setTodoItems(previousTodos); // Revert on failure
-        }
-    };
-
-
-    const handleDeleteTodo = async (id) => {
-        const previousTodos = [...todoItems];
-
-        setTodoItems(todoItems.filter(todo => todo.id !== id));
-
-        // API Call
-        try {
-            deleteTodoItem(user, list.id, id);
-        } catch (err) {
-            console.error('Failed to delete todo:', err);
-            setTodoItems(previousTodos); // Revert on failure
-        }
-    };
-
-    const handleEditTodo = async (id, newTitle) => {
-        const previousTodos = [...todoItems];
-
-        setTodoItems(todoItems.map(todo =>
-            todo.id === id ? { ...todo, title: newTitle } : todo
-        ));
-
-        // API Call
-        try {
-            updateTodoItem(user, list.id, id, { title: newTitle });
-        } catch (err) {
-            console.error('Failed to edit todo:', err);
-            setTodoItems(previousTodos); // Revert on failure
-        }
-    };
-
-    const handleAddTodo = async (e) => {
+    const handleAddKeyDown = (e) => {
         if (e.key === 'Enter' && inputValue.trim()) {
-            setTodoItems([...todoItems, { id: Date.now(), title: inputValue, completed: false }]);
+            addTodo(inputValue.trim());
             setInputValue("");
-        }
-        try {
-            const newTodo = await createTodoInList(user, list.id, { title: inputValue.trim(), completed: false });
-            setTodoItems(prevTodos => [...prevTodos, newTodo]);
-            setInputValue("");
-        } catch (err) {
-            console.error('Failed to add todo:', err);
         }
     };
 
@@ -150,17 +96,13 @@ export default function ListCard({ list }) {
         });
     };
 
-    // Sort: Active first, Completed last
+    // Sort: Active first, done last
 
-    const safeTodos = Array.isArray(todoItems) ? todoItems : [];
+    // const safeTodos = Array.isArray(todoItems) ? todoItems : [];
 
 
-    const activeTodos = safeTodos.filter(todo => !todo.completed);
-    const completedTodos = todoItems.filter(todo => todo.completed);
-
-    if (loading) return <Loading />;
-    if (error) return <ErrorComponent message={error} />;
-
+    const activeTodos = todoItems?.filter(todo => todo && todo.done === false) || [];
+    const completedTodos = todoItems?.filter(todo => todo && todo.done === true) || [];
     return (
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
 
@@ -191,9 +133,9 @@ export default function ListCard({ list }) {
                                         todoItem={todo}
                                         checkboxColor={theme.checkbox}
                                         hoverColor={theme.hover}
-                                        onToggle={handleToggleTodo}
-                                        onDelete={handleDeleteTodo}
-                                        onEdit={handleEditTodo}
+                                        onToggle={toggleTodo}
+                                        onDelete={deleteTodo}
+                                        onEdit={editTodo}
                                     />
                                 ))}
                             </SortableContext>
@@ -210,9 +152,9 @@ export default function ListCard({ list }) {
                                 <TaskItem
                                     key={item.id}
                                     todoItem={item}
-                                    onToggle={handleToggleTodo}
-                                    onDelete={handleDeleteTodo}
-                                    onEdit={handleEditTodo}
+                                    onToggle={toggleTodo}
+                                    onDelete={deleteTodo}
+                                    onEdit={editTodo}
                                     checkboxColor={theme.checkbox}
                                     hoverColor={theme.hover} />
                             ))}
@@ -229,7 +171,7 @@ export default function ListCard({ list }) {
                                 placeholder="Add list item..."
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
-                                onKeyDown={handleAddTodo}
+                                onKeyDown={handleAddKeyDown}
                             />
                         </div>
                     </div>

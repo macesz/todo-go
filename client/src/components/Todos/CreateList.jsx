@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
     CheckSquare, 
     Plus, 
@@ -58,7 +58,7 @@ export default function CreateList({ onSave }) {
         setListItems(listItems.filter(item => item.id !== id));
     };
 
-    const handleSave = () => {
+    const handleSave = useCallback (() => {
         // Only save if there is content
         if (title.trim() || listItems.length > 0 || newTodoTitle.trim()) {
             
@@ -84,7 +84,7 @@ export default function CreateList({ onSave }) {
             onSave(newList);
         }
         resetForm();
-    };
+    }, [title, listItems, newTodoTitle, selectedColor, selectedLabels, onSave]);
 
     // --- Event Handlers ---
 
@@ -107,7 +107,7 @@ export default function CreateList({ onSave }) {
 
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [isExpanded, title, listItems, newTodoTitle, selectedColor]);
+    }, [isExpanded, handleSave]);
 
 
     // --- RENDER ---
