@@ -12,7 +12,6 @@ type rowDTO struct {
 	TodlistID int64     `db:"todolist_id"`
 	Title     string    `db:"title"`
 	Done      bool      `db:"done"`
-	Priority  int64     `db:"priority"`
 	CreatedAt time.Time `db:"created_at"`
 }
 
@@ -23,7 +22,6 @@ func (r rowDTO) ToDomain() *domain.Todo {
 		TodoListID: r.TodlistID,
 		Title:      r.Title,
 		Done:       r.Done,
-		Priority:   r.Priority,
 		CreatedAt:  r.CreatedAt,
 	}
 }

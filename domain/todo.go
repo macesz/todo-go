@@ -14,7 +14,6 @@ type Todo struct {
 
 	Title     string
 	Done      bool
-	Priority  int64
 	CreatedAt time.Time
 }
 

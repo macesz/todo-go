@@ -39,19 +39,16 @@ type TodoDTO struct {
 	TodoListID int64  `json:"todolist_id"`
 	Title      string `json:"title"`
 	Done       bool   `json:"done"`
-	Priority   int64  `json:"priority"`
 	CreatedAt  string `json:"created_at"`
 }
 
 type CreateTodoDTO struct {
-	Title    string `json:"title" validate:"required,min=1,max=255"`
-	Priority int64  `json:"priority" validate:"required,min=1,max=5"`
+	Title string `json:"title" validate:"required,min=1,max=255"`
 }
 
 type UpdateTodoDTO struct {
-	Title    string `json:"title" validate:"required,min=1,max=255"`
-	Done     bool   `json:"done" validate:"required"`
-	Priority int64  `json:"priority" validate:"required,min=1,max=5"`
+	Title string `json:"title" validate:"required,min=1,max=255"`
+	Done  bool   `json:"done" validate:"required"`
 }
 
 // User

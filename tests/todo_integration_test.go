@@ -78,8 +78,7 @@ func Test_Todo_Integration(t *testing.T) {
 
 		t.Run("Create todo", func(t *testing.T) {
 			payload := domain.CreateTodoDTO{
-				Title:    "Integration Test Todo",
-				Priority: 3,
+				Title: "Integration Test Todo",
 			}
 			body, _ := json.Marshal(payload)
 
@@ -92,7 +91,6 @@ func Test_Todo_Integration(t *testing.T) {
 			require.NoError(t, err)
 			require.NotZero(t, createdTodo.ID)
 			require.Equal(t, "Integration Test Todo", createdTodo.Title)
-			require.Equal(t, int64(3), createdTodo.Priority)
 			require.False(t, createdTodo.Done)
 		})
 
@@ -115,9 +113,8 @@ func Test_Todo_Integration(t *testing.T) {
 		// 4. Update the todo
 		t.Run("Update todo", func(t *testing.T) {
 			payload := domain.UpdateTodoDTO{
-				Title:    "Updated Integration Test",
-				Done:     true,
-				Priority: 5,
+				Title: "Updated Integration Test",
+				Done:  true,
 			}
 			body, _ := json.Marshal(payload)
 
@@ -132,7 +129,6 @@ func Test_Todo_Integration(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, "Updated Integration Test", updatedTodo.Title)
 			require.True(t, updatedTodo.Done)
-			require.Equal(t, int64(5), updatedTodo.Priority)
 		})
 
 		// 5. List todos (should have one)
@@ -193,7 +189,7 @@ func Test_Todo_Integration(t *testing.T) {
 	t.Run("Validation Errors", func(t *testing.T) {
 
 		t.Run("Create with empty title", func(t *testing.T) {
-			payload := domain.CreateTodoDTO{Title: "", Priority: 3}
+			payload := domain.CreateTodoDTO{Title: ""}
 			body, _ := json.Marshal(payload)
 
 			url := fmt.Sprintf("/api/lists/%d/todos", listID)

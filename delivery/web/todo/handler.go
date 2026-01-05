@@ -105,7 +105,7 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 
 	// Create the todo using the service
 	// If creation fails, return 400 Bad Request
-	todo, err := h.todoService.CreateTodo(r.Context(), user.ID, listID, reqTodo.Title, reqTodo.Priority)
+	todo, err := h.todoService.CreateTodo(r.Context(), user.ID, listID, reqTodo.Title)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidTitle) {
 			utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
@@ -121,7 +121,6 @@ func (h *TodoHandlers) CreateTodo(w http.ResponseWriter, r *http.Request) {
 		TodoListID: todo.TodoListID,
 		Title:      todo.Title,
 		Done:       todo.Done,
-		Priority:   todo.Priority,
 		CreatedAt:  todo.CreatedAt.Format(time.RFC3339), // Format time as ISO string
 	}
 
@@ -181,7 +180,6 @@ func (h *TodoHandlers) GetTodo(w http.ResponseWriter, r *http.Request) {
 		TodoListID: todolistID,
 		Title:      todo.Title,
 		Done:       todo.Done,
-		Priority:   todo.Priority,
 		CreatedAt:  todo.CreatedAt.Format(time.RFC3339), // Format time as ISO string
 	}
 
@@ -241,7 +239,7 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call service to update (passes context for timeouts/cancellation)
-	updated, err := h.todoService.UpdateTodo(r.Context(), user.ID, id, todoDTO.Title, todoDTO.Done, todoDTO.Priority)
+	updated, err := h.todoService.UpdateTodo(r.Context(), user.ID, id, todoDTO.Title, todoDTO.Done)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) { // Check custom error )
 			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
@@ -261,7 +259,6 @@ func (h *TodoHandlers) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 		TodoListID: todolistID,
 		Title:      updated.Title,
 		Done:       updated.Done,
-		Priority:   updated.Priority,
 	}
 
 	utils.WriteJSON(w, http.StatusOK, respTodo) // Return the updated todo as JSON
@@ -317,17 +314,6 @@ func translateValidationError(err error) string {
 				messages = append(messages, "title must be at most 255 characters")
 			default:
 				messages = append(messages, "title is invalid")
-			}
-		case "Priority":
-			switch fieldErr.Tag() {
-			case "required":
-				messages = append(messages, "priority is required")
-			case "min":
-				messages = append(messages, "priority must be between 1 and 5")
-			case "max":
-				messages = append(messages, "priority must be between 1 and 5")
-			default:
-				messages = append(messages, "priority is invalid")
 			}
 		default:
 			messages = append(messages, fmt.Sprintf("%s is invalid", strings.ToLower(fieldErr.Field())))
