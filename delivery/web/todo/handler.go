@@ -48,7 +48,19 @@ func (h *TodoHandlers) ListTodos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, todos)
+	respTodos := make([]domain.TodoDTO, len(todos))
+	for _, todo := range todos {
+		respTodo := domain.TodoDTO{
+			ID:         todo.ID,
+			UserID:     todo.UserID,
+			TodoListID: todo.TodoListID,
+			Title:      todo.Title,
+			Done:       todo.Done,
+			CreatedAt:  todo.CreatedAt.Format(time.RFC3339),
+		}
+		respTodos = append(respTodos, respTodo)
+	}
+	utils.WriteJSON(w, http.StatusOK, respTodos)
 }
 
 // CreateTodo handles POST /todos requests.
