@@ -147,7 +147,7 @@ func (s *Store) Create(ctx context.Context, todoList *domain.TodoList) error {
 	return nil
 }
 
-func (s *Store) Update(ctx context.Context, id int64, title string, color string, labels []string) (*domain.TodoList, error) {
+func (s *Store) Update(ctx context.Context, id int64, title string, color string, labels []string, deleted bool) (*domain.TodoList, error) {
 	templateParams := map[string]any{}
 
 	querystr, err := pkg.PrepareQuery(s.queryTemplates[updateTodoListQuery], templateParams)
@@ -156,10 +156,11 @@ func (s *Store) Update(ctx context.Context, id int64, title string, color string
 	}
 
 	queryParams := map[string]any{
-		"id":     id,
-		"title":  title,
-		"color":  color,
-		"labels": strings.Join(labels, ","),
+		"id":      id,
+		"title":   title,
+		"color":   color,
+		"labels":  strings.Join(labels, ","),
+		"deleted": deleted,
 	}
 
 	result, err := s.db.NamedExecContext(ctx, querystr, queryParams)

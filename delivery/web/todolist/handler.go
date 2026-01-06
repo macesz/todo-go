@@ -203,7 +203,7 @@ func (h *TodoListHandlers) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updated, err := h.todoListService.Update(ctx, user.ID, id, todoListDtO.Title, *todoListDtO.Color, todoListDtO.Labels)
+	updated, err := h.todoListService.Update(ctx, user.ID, id, todoListDtO.Title, *todoListDtO.Color, todoListDtO.Labels, todoListDtO.Deleted)
 	if err != nil {
 		if errors.Is(err, domain.ErrListNotFound) { // Check custom error )
 			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
@@ -217,11 +217,12 @@ func (h *TodoListHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respTodoList := domain.TodoListDTO{
-		ID:     updated.ID,
-		UserID: user.ID,
-		Title:  updated.Title,
-		Color:  &updated.Color,
-		Labels: updated.Labels,
+		ID:      updated.ID,
+		UserID:  user.ID,
+		Title:   updated.Title,
+		Color:   &updated.Color,
+		Labels:  updated.Labels,
+		Deleted: updated.Deleted,
 	}
 
 	utils.WriteJSON(w, http.StatusOK, respTodoList)

@@ -330,8 +330,8 @@ func (_c *TodoListService_List_Call) RunAndReturn(run func(ctx context.Context, 
 }
 
 // Update provides a mock function for the type TodoListService
-func (_mock *TodoListService) Update(ctx context.Context, userID int64, id int64, title string, color string, labels []string) (*domain.TodoList, error) {
-	ret := _mock.Called(ctx, userID, id, title, color, labels)
+func (_mock *TodoListService) Update(ctx context.Context, userID int64, id int64, title string, color string, labels []string, deleted bool) (*domain.TodoList, error) {
+	ret := _mock.Called(ctx, userID, id, title, color, labels, deleted)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
@@ -339,18 +339,18 @@ func (_mock *TodoListService) Update(ctx context.Context, userID int64, id int64
 
 	var r0 *domain.TodoList
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, int64, string, string, []string) (*domain.TodoList, error)); ok {
-		return returnFunc(ctx, userID, id, title, color, labels)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, int64, string, string, []string, bool) (*domain.TodoList, error)); ok {
+		return returnFunc(ctx, userID, id, title, color, labels, deleted)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, int64, string, string, []string) *domain.TodoList); ok {
-		r0 = returnFunc(ctx, userID, id, title, color, labels)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, int64, string, string, []string, bool) *domain.TodoList); ok {
+		r0 = returnFunc(ctx, userID, id, title, color, labels, deleted)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*domain.TodoList)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int64, int64, string, string, []string) error); ok {
-		r1 = returnFunc(ctx, userID, id, title, color, labels)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int64, int64, string, string, []string, bool) error); ok {
+		r1 = returnFunc(ctx, userID, id, title, color, labels, deleted)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -369,11 +369,12 @@ type TodoListService_Update_Call struct {
 //   - title string
 //   - color string
 //   - labels []string
-func (_e *TodoListService_Expecter) Update(ctx interface{}, userID interface{}, id interface{}, title interface{}, color interface{}, labels interface{}) *TodoListService_Update_Call {
-	return &TodoListService_Update_Call{Call: _e.mock.On("Update", ctx, userID, id, title, color, labels)}
+//   - deleted bool
+func (_e *TodoListService_Expecter) Update(ctx interface{}, userID interface{}, id interface{}, title interface{}, color interface{}, labels interface{}, deleted interface{}) *TodoListService_Update_Call {
+	return &TodoListService_Update_Call{Call: _e.mock.On("Update", ctx, userID, id, title, color, labels, deleted)}
 }
 
-func (_c *TodoListService_Update_Call) Run(run func(ctx context.Context, userID int64, id int64, title string, color string, labels []string)) *TodoListService_Update_Call {
+func (_c *TodoListService_Update_Call) Run(run func(ctx context.Context, userID int64, id int64, title string, color string, labels []string, deleted bool)) *TodoListService_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -399,6 +400,10 @@ func (_c *TodoListService_Update_Call) Run(run func(ctx context.Context, userID 
 		if args[5] != nil {
 			arg5 = args[5].([]string)
 		}
+		var arg6 bool
+		if args[6] != nil {
+			arg6 = args[6].(bool)
+		}
 		run(
 			arg0,
 			arg1,
@@ -406,6 +411,7 @@ func (_c *TodoListService_Update_Call) Run(run func(ctx context.Context, userID 
 			arg3,
 			arg4,
 			arg5,
+			arg6,
 		)
 	})
 	return _c
@@ -416,7 +422,7 @@ func (_c *TodoListService_Update_Call) Return(todoList *domain.TodoList, err err
 	return _c
 }
 
-func (_c *TodoListService_Update_Call) RunAndReturn(run func(ctx context.Context, userID int64, id int64, title string, color string, labels []string) (*domain.TodoList, error)) *TodoListService_Update_Call {
+func (_c *TodoListService_Update_Call) RunAndReturn(run func(ctx context.Context, userID int64, id int64, title string, color string, labels []string, deleted bool) (*domain.TodoList, error)) *TodoListService_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

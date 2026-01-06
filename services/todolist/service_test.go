@@ -41,7 +41,7 @@ func TestListTodos(t *testing.T) {
 			fields: fields{},
 			args:   args{ctx: context.Background()},
 			want: []*domain.TodoList{
-				{ID: 1, UserID: 1, Title: "Shopping", Color: "white", Labels: nil, CreatedAt: fixedTime, Items: nil},
+				{ID: 1, UserID: 1, Title: "Shopping", Color: "white", Labels: nil, CreatedAt: fixedTime, Deleted: false, Items: nil},
 			},
 			initMocks: func(tt *testing.T, ta *args, s *TodoListService) {
 				store := mocks.NewTodoListStore(tt)
@@ -51,7 +51,7 @@ func TestListTodos(t *testing.T) {
 				})
 
 				store.On("List", ta.ctx, ta.userID).Return([]*domain.TodoList{
-					{ID: 1, UserID: 1, Title: "Shopping", Color: "white", Labels: nil, CreatedAt: fixedTime, Items: nil},
+					{ID: 1, UserID: 1, Title: "Shopping", Color: "white", Labels: nil, CreatedAt: fixedTime, Deleted: false, Items: nil},
 				}, nil).Once()
 
 				s.Store = store
@@ -354,12 +354,13 @@ func TestUpdate(t *testing.T) {
 	}
 
 	type args struct {
-		ctx    context.Context
-		userID int64
-		id     int64
-		title  string
-		color  string
-		labels []string
+		ctx     context.Context
+		userID  int64
+		id      int64
+		title   string
+		color   string
+		labels  []string
+		deleted bool
 	}
 
 	tests := []struct {
@@ -375,12 +376,13 @@ func TestUpdate(t *testing.T) {
 			name:   "success",
 			fields: fields{},
 			args: args{
-				ctx:    context.Background(),
-				userID: 1,
-				id:     1,
-				title:  "Updated Shopping",
-				color:  "blue",
-				labels: []string{"urgent", "groceries"},
+				ctx:     context.Background(),
+				userID:  1,
+				id:      1,
+				title:   "Updated Shopping",
+				color:   "blue",
+				labels:  []string{"urgent", "groceries"},
+				deleted: false,
 			},
 			want: &domain.TodoList{
 				ID:        1,
@@ -388,6 +390,7 @@ func TestUpdate(t *testing.T) {
 				Title:     "Updated Shopping",
 				Color:     "blue",
 				Labels:    []string{"urgent", "groceries"},
+				Deleted:   false,
 				Items:     nil,
 				CreatedAt: fixedTime,
 			},
@@ -405,12 +408,13 @@ func TestUpdate(t *testing.T) {
 					Title:     "Shopping",
 					Color:     "white",
 					Labels:    nil,
+					Deleted:   false,
 					Items:     nil,
 					CreatedAt: fixedTime,
 				}, nil).Once()
 
 				// Mock Update
-				store.On("Update", ta.ctx, ta.id, ta.title, ta.color, ta.labels).Return(&domain.TodoList{
+				store.On("Update", ta.ctx, ta.id, ta.title, ta.color, ta.labels, ta.deleted).Return(&domain.TodoList{
 					ID:        1,
 					UserID:    1,
 					Title:     "Updated Shopping",
@@ -426,7 +430,7 @@ func TestUpdate(t *testing.T) {
 		{
 			name:      "list not found",
 			fields:    fields{},
-			args:      args{ctx: context.Background(), userID: 1, id: 999, title: "Test", color: "red", labels: nil},
+			args:      args{ctx: context.Background(), userID: 1, id: 999, title: "Test", color: "red", labels: nil, deleted: false},
 			wantErr:   true,
 			wantedErr: domain.ErrListNotFound,
 			initMocks: func(tt *testing.T, ta *args, s *TodoListService) {
@@ -445,7 +449,7 @@ func TestUpdate(t *testing.T) {
 		{
 			name:      "list belongs to different user",
 			fields:    fields{},
-			args:      args{ctx: context.Background(), userID: 1, id: 2, title: "Hacked", color: "red", labels: nil},
+			args:      args{ctx: context.Background(), userID: 1, id: 2, title: "Hacked", color: "red", labels: nil, deleted: false},
 			wantErr:   true,
 			wantedErr: domain.ErrListNotFound,
 			initMocks: func(tt *testing.T, ta *args, s *TodoListService) {
@@ -472,7 +476,7 @@ func TestUpdate(t *testing.T) {
 		{
 			name:      "store update returns sql.ErrNoRows",
 			fields:    fields{},
-			args:      args{ctx: context.Background(), userID: 1, id: 1, title: "Test", color: "red", labels: nil},
+			args:      args{ctx: context.Background(), userID: 1, id: 1, title: "Test", color: "red", labels: nil, deleted: false},
 			wantErr:   true,
 			wantedErr: domain.ErrListNotFound,
 			initMocks: func(tt *testing.T, ta *args, s *TodoListService) {
@@ -490,11 +494,12 @@ func TestUpdate(t *testing.T) {
 					Color:     "white",
 					Labels:    nil,
 					Items:     nil,
+					Deleted:   false,
 					CreatedAt: fixedTime,
 				}, nil).Once()
 
 				// But Update fails with ErrNoRows (race condition scenario)
-				store.On("Update", ta.ctx, ta.id, ta.title, ta.color, ta.labels).Return(nil, sql.ErrNoRows).Once()
+				store.On("Update", ta.ctx, ta.id, ta.title, ta.color, ta.labels, ta.deleted).Return(nil, sql.ErrNoRows).Once()
 
 				s.Store = store
 			},
@@ -502,7 +507,7 @@ func TestUpdate(t *testing.T) {
 		{
 			name:    "store update error",
 			fields:  fields{},
-			args:    args{ctx: context.Background(), userID: 1, id: 1, title: "Test", color: "red", labels: nil},
+			args:    args{ctx: context.Background(), userID: 1, id: 1, title: "Test", color: "red", labels: nil, deleted: false},
 			wantErr: true,
 			initMocks: func(tt *testing.T, ta *args, s *TodoListService) {
 				store := mocks.NewTodoListStore(tt)
@@ -519,11 +524,12 @@ func TestUpdate(t *testing.T) {
 					Color:     "white",
 					Labels:    nil,
 					Items:     nil,
+					Deleted:   false,
 					CreatedAt: fixedTime,
 				}, nil).Once()
 
 				// Update fails with generic error
-				store.On("Update", ta.ctx, ta.id, ta.title, ta.color, ta.labels).Return(nil, errors.New("database error")).Once()
+				store.On("Update", ta.ctx, ta.id, ta.title, ta.color, ta.labels, ta.deleted).Return(nil, errors.New("database error")).Once()
 
 				s.Store = store
 			},
@@ -540,7 +546,7 @@ func TestUpdate(t *testing.T) {
 
 			tc.initMocks(t, &tc.args, s)
 
-			got, err := s.Update(tc.args.ctx, tc.args.userID, tc.args.id, tc.args.title, tc.args.color, tc.args.labels)
+			got, err := s.Update(tc.args.ctx, tc.args.userID, tc.args.id, tc.args.title, tc.args.color, tc.args.labels, tc.args.deleted)
 			if tc.wantErr {
 				require.Error(t, err)
 				if tc.wantedErr != nil {
