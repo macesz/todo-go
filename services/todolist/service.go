@@ -64,7 +64,7 @@ func (s *TodoListService) Update(ctx context.Context, userID int64, id int64, ti
 		return nil, err
 	}
 
-	updated, err := s.Store.Update(ctx, userID, title, color, labels, deleted)
+	updated, err := s.Store.Update(ctx, id, title, color, labels, deleted)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrListNotFound

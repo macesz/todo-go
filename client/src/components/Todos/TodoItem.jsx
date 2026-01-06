@@ -1,9 +1,9 @@
 import { Trash2 } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 
-export default function TaskItem({ todoItem, onToggle, onDelete, onEdit, checkboxColor, hoverColor }) {
+const TodoItem = memo(({ todoItem, onToggle, onDelete, onEdit, checkboxColor, hoverColor }) => {
 
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(todoItem.title);
@@ -36,11 +36,6 @@ export default function TaskItem({ todoItem, onToggle, onDelete, onEdit, checkbo
     }
 
     const handleKeyDown = (e) => {
-
-        if (e.key === ' ' || e.key === 'Enter') {
-            e.stopPropagation();
-        }
-
         if (e.key === 'Enter') {
             e.preventDefault();
             handleSave();
@@ -48,7 +43,18 @@ export default function TaskItem({ todoItem, onToggle, onDelete, onEdit, checkbo
             setEditValue(todoItem.title);
             setIsEditing(false);
         }
+
+        // Stop spacebar from toggling checkboxes or triggering DnD during edit
+        if (isEditing && e.key === ' ') {
+            e.stopPropagation();
+        }
     }
+
+    const startEditing = (e) => {
+        e.stopPropagation();
+        setEditValue(todoItem.title); // Ensure it matches latest prop when starting
+        setIsEditing(true);
+    };
 
     return (
         <li
@@ -58,13 +64,15 @@ export default function TaskItem({ todoItem, onToggle, onDelete, onEdit, checkbo
             {...listeners}
             className={`group flex items-center gap-3 p-2 ${hoverColor} rounded-lg shadow-sm mt-auto m-4 pt-3 transition-colors cursor-pointer min-h-[40px]`}>
 
-            {/* 1. Checkbox (Fixed width to prevent squishing) */}
-            <div className="flex-shrink-0">
+            {/* 1. Checkbox */}
+            <div className="flex-shrink-0"
+                onPointerDown={(e) => e.stopPropagation()}
+            >
                 <input
                     id={`checkbox-${todoItem.id}`}
                     type="checkbox"
                     className={`checkbox checkbox-xs rounded-sm border-2 transition-all ${checkboxColor}`}
-                    checked={todoItem.completed}
+                    checked={todoItem.done}
                     onChange={() => onToggle(todoItem.id)}
                 />
 
@@ -86,10 +94,7 @@ export default function TaskItem({ todoItem, onToggle, onDelete, onEdit, checkbo
                     />
                 ) : (
                     <span
-                        onClick={(e) => {
-                            e.stopPropagation(); // Prevent drag start on click
-                            setIsEditing(true);
-                        }}
+                        onClick={startEditing}
                         className={`block text-sm truncate cursor-text ${todoItem.completed
                             ? 'line-through text-gray-400'
                             : 'text-gray-700 font-medium'
@@ -102,6 +107,7 @@ export default function TaskItem({ todoItem, onToggle, onDelete, onEdit, checkbo
 
             {/* Column 3: Action Buttons (Hidden until hover) */}
             <button
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => onDelete(todoItem.id)}
                 className="btn btn-square btn-ghost btn-sm opacity-0 group-hover:opacity-100 transition-opacity"
             >
@@ -109,5 +115,6 @@ export default function TaskItem({ todoItem, onToggle, onDelete, onEdit, checkbo
             </button>
         </li>
     );
-};
+});
 
+export default TodoItem;

@@ -35,6 +35,20 @@ export const fetchTodoLists = async (user) => {
     }
 };
 
+
+
+export const fetchTodoListsWithItems = async (user) => {
+    try {
+        const response = await api.get("/lists?with_items=true", {
+            user
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error('Error getting todo lists:', error);
+    }
+}
+
 // Create a new todo list
 export const createTodoList = async (user, listData) => {
     try {

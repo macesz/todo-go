@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../Context/AuthContext';
-import { fetchTodoLists } from '../Services/apiServices';
+import { fetchTodoListsWithItems } from '../Services/apiServices';
 
 export const useFetchLists = () => {
-
-
 
     const [lists, setLists] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -22,7 +20,7 @@ export const useFetchLists = () => {
 
             try {
                 setLoading(true);
-                const result = await fetchTodoLists(user);
+                const result = await fetchTodoListsWithItems(user);
 
                 if (result && Array.isArray(result) && result.length > 0) {
                     setLists(result)
