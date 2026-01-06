@@ -88,7 +88,11 @@ func (h *TodoListHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
 		return
 	}
-	todoList, err := h.todoListService.Create(ctx, user.ID, reqTodoList.Title, *reqTodoList.Color, reqTodoList.Labels)
+	colorValue := "default"
+	if reqTodoList.Color != nil {
+		colorValue = *reqTodoList.Color
+	}
+	todoList, err := h.todoListService.Create(ctx, user.ID, reqTodoList.Title, colorValue, reqTodoList.Labels)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidTitle) {
 			utils.WriteJSON(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
