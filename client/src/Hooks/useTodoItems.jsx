@@ -28,10 +28,10 @@ export const useTodoItems = (initialItems, listId, user, onSyncGlobal) => {
             if (!todo) return prev;
 
             // Perform API call in background
-            updateTodoItem(user, listId, id, { done: !todo.done })
+            updateTodoItem(user, listId, id, {title: todo.title, done: !todo.done })
                 .catch(() => setTodoItems(initial => [...initial])); // Simple rollback logic
 
-            return prev.map(t => t.id === id ? { ...t, done: !t.done } : t);
+            return prev.map(t => t.id === id ? { ...t, title: todo.title, done: !t.done } : t);
         });
     }, [user, listId]);
 

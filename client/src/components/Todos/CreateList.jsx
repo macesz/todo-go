@@ -66,7 +66,6 @@ export default function CreateList({ onSave }) {
             let finalItems = [...listItems];
             if (newTodoTitle.trim()) {
                 finalItems.push({
-                    id: Date.now(),
                     title: newTodoTitle,
                     done: false
                 });

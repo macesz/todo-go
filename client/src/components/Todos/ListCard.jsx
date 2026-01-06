@@ -32,9 +32,7 @@ export default function ListCard({ list }) {
 
     const [themeColor, setThemeColor] = useState(list.color);
 
-
     const theme = COLOR_PALETTE[list.color] || COLOR_PALETTE.default;
-
 
     const {
         todoItems,
