@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import {useRef, useState } from "react";
 import { Trash2, Pencil, Check } from "lucide-react";
 
 
@@ -8,7 +8,9 @@ export default function EditLabelRow({ label, onUpdate, onDelete, isFocused, set
 
     const handleSave = () => {
         if (tempName.trim() && tempName !== label.name) {
-            onUpdate(label.id, tempName);
+            onUpdate(label.id, tempName.trim());
+        } else {
+            setTempName(label.name)
         }
         setFocused(null);
     };

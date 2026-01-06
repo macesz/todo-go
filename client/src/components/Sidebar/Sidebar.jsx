@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronsRight, Search, Settings, LogOut } from "lucide-react";
+import { ChevronsRight, Search, Settings, LogOut, X } from "lucide-react";
 import { List, Trash2, Edit3, ChevronDown, ChevronUp } from "lucide-react";
 import MenuItem from "./MenuItem.jsx";
 import LabelItem from "./LabelItem.jsx";
@@ -19,11 +19,14 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const {
     uniqueLabels,
+    searchQuery,
+    setSearchQuery,
     selectedLabel,
     filterByLabel,
     clearFilter,
-    deleteLabelGlobal,
-    renameLabelGlobal
+    deleteLabelGlobally,
+    renameLabelGlobally,
+
   } = useLists();
 
   const [showAllLabels, setShowAllLabels] = useState(false);
@@ -34,11 +37,15 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const handleModalRename = (id, newName) => {
     // id is the old name in our system
-    renameLabelGlobal(id, newName);
+    renameLabelGlobally(id, newName);
   };
 
-  const handleModalDelete = (id) => {
-    deleteLabelGlobal(id);
+  const handleModalDelete = (labelName) => {
+    deleteLabelGlobally(labelName);
+
+    if (selectedLabel === labelName) {
+      clearFilter();
+    }
   };
 
 
@@ -88,9 +95,19 @@ const Sidebar = ({ isOpen, onClose }) => {
             <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
             <input
               type="text"
-              placeholder="Search"
+              placeholder="Search title or items..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-white border border-gray-200 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -107,8 +124,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 clearFilter(); // <--- Clear the context filter
                 if (window.innerWidth < 768) onClose();
               }}
-              active={location.pathname === '/' && selectedLabel === null}
-            />
+              active={location.pathname === '/' && selectedLabel === null && !searchQuery} />
 
             {/* BIN */}
             <MenuItem
@@ -135,7 +151,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                   label={label}
                   onClick={() => {
                     navigate('/');
-                    filterByLabel(label.name); // <--- Set context filter
+                    filterByLabel(label.name);
                     if (window.innerWidth < 768) onClose();
                   }}
                   isActive={selectedLabel === label.name}
