@@ -63,9 +63,6 @@ export const ListProvider = ({ children }) => {
         setSelectedLabel(null);
     }
 
-
-
-
     // Create, Update, Delete Handlers
     const handleCreateList = async (listData) => {
         const { items, ...listDetails } = listData;

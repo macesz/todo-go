@@ -47,7 +47,7 @@ export default function CreateList({ onSave }) {
             const newItem = {
                 id: Date.now(),
                 title: newTodoTitle,
-                completed: false
+                done: false
             };
             setListItems([...listItems, newItem]);
             setNewTodoTitle("");
@@ -68,17 +68,16 @@ export default function CreateList({ onSave }) {
                 finalItems.push({
                     id: Date.now(),
                     title: newTodoTitle,
-                    completed: false
+                    done: false
                 });
             }
 
             const newList = {
-                id: Date.now().toString(),
                 title: title.trim() || "Untitled List", // Fallback title
                 items: finalItems,
                 color: selectedColor,
                 labels: selectedLabels,
-                pinned: false
+                done: false
             };
 
             onSave(newList);
