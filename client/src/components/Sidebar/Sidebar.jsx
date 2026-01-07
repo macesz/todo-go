@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ChevronsRight, Search, Settings, LogOut, X } from "lucide-react";
 import { List, Trash2, Edit3, ChevronDown, ChevronUp } from "lucide-react";
 import MenuItem from "./MenuItem.jsx";
@@ -14,7 +14,6 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation(); // To check current route
 
 
   const {
@@ -24,6 +23,8 @@ const Sidebar = ({ isOpen, onClose }) => {
     selectedLabel,
     filterByLabel,
     clearFilter,
+    view,
+    setView,
     deleteLabelGlobally,
     renameLabelGlobally,
 
@@ -120,18 +121,28 @@ const Sidebar = ({ isOpen, onClose }) => {
               icon={<List />}
               label="Todos"
               onClick={() => {
+                setView('home')
                 navigate('/');
                 clearFilter(); // <--- Clear the context filter
                 if (window.innerWidth < 768) onClose();
               }}
-              active={location.pathname === '/' && selectedLabel === null && !searchQuery} />
+              active={view === 'home' && !selectedLabel}
+            />
 
             {/* BIN */}
             <MenuItem
               icon={<Trash2 />}
               label="Bin"
-              onClick={() => navigate('/bin')}
+              onClick={() => {
+                setView('bin');
+                navigate('/');
+                clearFilter();
+                if (window.innerWidth < 768) onClose();
+
+              }}
+              active={view === 'bin'}
             />
+
           </ul>
           {/* LABELS SECTION */}
           <div className="mb-6">

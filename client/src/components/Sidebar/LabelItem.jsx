@@ -5,9 +5,6 @@ export default function LabelItem({ label, onClick }) {
 
     if (!label) return null;
 
-
-    console.log("Rendering LabelItem: color:", label.color);
-
     const theme = COLOR_PALETTE[label.color] || COLOR_PALETTE.default;
     
     return (

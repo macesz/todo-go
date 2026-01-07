@@ -37,6 +37,7 @@ func (h *TodoListHandlers) List(w http.ResponseWriter, r *http.Request) {
 			Color:     &todoList.Color,
 			Labels:    todoList.Labels,
 			CreatedAt: todoList.CreatedAt.Format(time.RFC3339),
+			Deleted:   todoList.Deleted,
 		}
 
 		if withItems {
@@ -109,6 +110,7 @@ func (h *TodoListHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		Color:     &todoList.Color,
 		Labels:    todoList.Labels,
 		CreatedAt: todoList.CreatedAt.Format(time.RFC3339),
+		Deleted:   todoList.Deleted,
 	}
 
 	utils.WriteJSON(w, http.StatusCreated, respTodoList)
@@ -169,6 +171,7 @@ func (h *TodoListHandlers) GetListByID(w http.ResponseWriter, r *http.Request) {
 		Color:     &todoList.Color,
 		Labels:    todoList.Labels,
 		CreatedAt: todoList.CreatedAt.Format(time.RFC3339),
+		Deleted:   todoList.Deleted,
 		Items:     itemDTOs,
 	}
 	utils.WriteJSON(w, http.StatusOK, respTodoList)
