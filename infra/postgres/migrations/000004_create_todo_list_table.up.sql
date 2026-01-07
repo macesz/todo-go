@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS todolist (
     title VARCHAR(255) NOT NULL,
     color VARCHAR(255),
     labels VARCHAR(255),
+    deleted BOOL NOT NULL DEFAULT false,
     created_at TIMESTAMP DEFAULT now(),
     PRIMARY KEY (id)
 );

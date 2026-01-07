@@ -130,9 +130,10 @@ func Test_TodoList_Integration(t *testing.T) {
 		t.Run("Update todo list", func(t *testing.T) {
 			color := "#ADD8E6"
 			payload := domain.UpdateTodoListRequestDTO{
-				Title:  "Updated Test",
-				Color:  &color,
-				Labels: []string{"shopping"},
+				Title:   "Updated Test",
+				Color:   &color,
+				Labels:  []string{"shopping"},
+				Deleted: false,
 			}
 			body, _ := json.Marshal(payload)
 

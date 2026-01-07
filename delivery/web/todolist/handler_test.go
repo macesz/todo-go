@@ -299,11 +299,12 @@ func TestUpdate(t *testing.T) {
 				Title:     "Updated Shopping List",
 				Color:     "#00FF00",
 				Labels:    []string{"groceries"},
-				CreatedAt: fixedTime, // ✅ Add this
+				CreatedAt: fixedTime,
+				Deleted: false
 			},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id":1,"user_id":1,"title":"Updated Shopping List","color":"#00FF00","labels":["groceries"],"created_at":""}`, // ✅ Add created_at
+			expectedBody:   `{"id":1,"user_id":1,"title":"Updated Shopping List","color":"#00FF00","labels":["groceries"],"created_at":"","deleted": false}`,
 		},
 		{
 			name:           "List not found",

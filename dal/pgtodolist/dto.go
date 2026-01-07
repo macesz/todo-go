@@ -14,6 +14,7 @@ type rowDTO struct {
 	Color     string    `db:"color"`
 	Labels    string    `db:"labels"`
 	CreatedAt time.Time `db:"created_at"`
+	Deleted   bool      `db:"deleted"`
 }
 
 func (r rowDTO) ToDomain() *domain.TodoList {
@@ -24,5 +25,6 @@ func (r rowDTO) ToDomain() *domain.TodoList {
 		Color:     r.Color,
 		Labels:    strings.Split(r.Labels, ","),
 		CreatedAt: r.CreatedAt,
+		Deleted:   r.Deleted,
 	}
 }

@@ -37,6 +37,7 @@ func (h *TodoListHandlers) List(w http.ResponseWriter, r *http.Request) {
 			Color:     &todoList.Color,
 			Labels:    todoList.Labels,
 			CreatedAt: todoList.CreatedAt.Format(time.RFC3339),
+			Deleted:   todoList.Deleted,
 		}
 
 		if withItems {
@@ -109,6 +110,7 @@ func (h *TodoListHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		Color:     &todoList.Color,
 		Labels:    todoList.Labels,
 		CreatedAt: todoList.CreatedAt.Format(time.RFC3339),
+		Deleted:   todoList.Deleted,
 	}
 
 	utils.WriteJSON(w, http.StatusCreated, respTodoList)
@@ -169,6 +171,7 @@ func (h *TodoListHandlers) GetListByID(w http.ResponseWriter, r *http.Request) {
 		Color:     &todoList.Color,
 		Labels:    todoList.Labels,
 		CreatedAt: todoList.CreatedAt.Format(time.RFC3339),
+		Deleted:   todoList.Deleted,
 		Items:     itemDTOs,
 	}
 	utils.WriteJSON(w, http.StatusOK, respTodoList)
@@ -203,7 +206,7 @@ func (h *TodoListHandlers) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updated, err := h.todoListService.Update(ctx, user.ID, id, todoListDtO.Title, *todoListDtO.Color, todoListDtO.Labels)
+	updated, err := h.todoListService.Update(ctx, user.ID, id, todoListDtO.Title, *todoListDtO.Color, todoListDtO.Labels, todoListDtO.Deleted)
 	if err != nil {
 		if errors.Is(err, domain.ErrListNotFound) { // Check custom error )
 			utils.WriteJSON(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()}) // e.g., {"error": "todo not found"}
@@ -217,11 +220,12 @@ func (h *TodoListHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respTodoList := domain.TodoListDTO{
-		ID:     updated.ID,
-		UserID: user.ID,
-		Title:  updated.Title,
-		Color:  &updated.Color,
-		Labels: updated.Labels,
+		ID:      updated.ID,
+		UserID:  user.ID,
+		Title:   updated.Title,
+		Color:   &updated.Color,
+		Labels:  updated.Labels,
+		Deleted: updated.Deleted,
 	}
 
 	utils.WriteJSON(w, http.StatusOK, respTodoList)

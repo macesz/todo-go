@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, PaletteIcon, TagsIcon, Trash2 } from 'lucide-react';
+import { Plus, PaletteIcon, TagsIcon, Trash2, RotateCcw } from 'lucide-react';
 import TaskItem from './TodoItem';
 import { COLOR_PALETTE } from '../../data/ColorPalette';
 import {
@@ -26,7 +26,7 @@ import { useTodoItems } from '../../Hooks/useTodoItems.jsx'
 export default function ListCard({ list }) {
     const { user } = useAuth();
 
-    const { updateListItemsLocally, handleDeleteList, handleUpdateList } = useLists();
+    const { updateListItemsLocally, handleDeleteList, handleUpdateList, moveToBin, restoreFromBin } = useLists();
     const [inputValue, setInputValue] = useState("");
     const [activeMenu, setActiveMenu] = useState(null);
 
@@ -49,6 +49,14 @@ export default function ListCard({ list }) {
             setInputValue("");
         }
     };
+
+    const handleTrashClick = () => {
+        if (list.deleted) {
+            setActiveMenu('delete-forever');
+        } else {
+            moveToBin(list.id)
+        }
+    }
 
     const handleColorChange = (colorKey) => {
         const updatedList = { ...list, color: colorKey };
@@ -94,10 +102,6 @@ export default function ListCard({ list }) {
         });
     };
 
-    // Sort: Active first, done last
-
-    // const safeTodos = Array.isArray(todoItems) ? todoItems : [];
-
 
     const activeTodos = todoItems?.filter(todo => todo && todo.done === false) || [];
     const completedTodos = todoItems?.filter(todo => todo && todo.done === true) || [];
@@ -109,10 +113,10 @@ export default function ListCard({ list }) {
 
                 <div className="flex flex-col h-full">
 
-                    {/* 1. COLOR BAR */}
+                    {/* COLOR BAR */}
                     <div className={`h-1.5 w-full rounded-t-2xl ${theme.bar}`}></div>
 
-                    {/* 2. HEADER & LIST CONTENT */}
+                    {/* HEADER & LIST CONTENT */}
                     <div className="p-0">
                         {/* Title */}
                         <div className="p-4 pb-1">
@@ -159,7 +163,7 @@ export default function ListCard({ list }) {
                         </ul>
                     </div>
 
-                    {/* 3. INPUT FIELD  */}
+                    {/* INPUT FIELD  */}
                     <div className="px-4 pb-2 pt-2 mt-auto">
                         <div className={`flex items-center gap-3 p-2 rounded-lg ${theme.hover} transition-colors`}>
                             <Plus size={18} className="text-gray-400 flex-shrink-0" />
@@ -174,7 +178,7 @@ export default function ListCard({ list }) {
                         </div>
                     </div>
 
-                    {/* 4. BOTTOM ACTION BAR  */}
+                    {/* Footer  */}
                     <div className={`
                         relative px-4 overflow-visible
                         w-full
@@ -184,57 +188,47 @@ export default function ListCard({ list }) {
                         ${activeMenu ? 'max-h-12 opacity-100 py-3 border-t border-gray-50' : 'group-hover:max-h-12 group-hover:opacity-100 group-hover:py-3 group-hover:border-t group-hover:border-gray-50'}
                     `}>
 
-                        <div className="flex items-center w-full">
-                            <div className="flex gap-2">
+                        <div className="flex items-center justify-between w-full">
+                            {!list.deleted && (
+                                <div className="flex gap-2">
 
-                                {/* COLOR PALETTE */}
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setActiveMenu(activeMenu === 'palette' ? null : 'palette')}
-                                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors tooltip tooltip-bottom"
-                                        data-tip="Change Color"
-                                    >
-                                        <PaletteIcon size={16} />
-                                    </button>
+                                    {/* COLOR PALETTE */}
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setActiveMenu(activeMenu === 'palette' ? null : 'palette')}
+                                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors tooltip tooltip-bottom"
+                                            data-tip="Change Color"
+                                        >
+                                            <PaletteIcon size={16} />
+                                        </button>
+                                    </div>
 
-                                    <div className="absolute bottom-full left-0 mb-2">
-                                        <ColorPopUp
-                                            isOpen={activeMenu === 'palette'}
-                                            onClose={() => setActiveMenu(null)}
-                                            selectedColor={themeColor}
-                                            onSelect={(key) => {
-                                                setThemeColor(key); // TODO Update local state, temp DELETE later
-                                                handleColorChange(key);
-                                            }}
-                                            palette={COLOR_PALETTE}
-                                        />
+                                    {/* LABELS */}
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setActiveMenu(activeMenu === 'labels' ? null : 'labels')}
+                                            className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors tooltip tooltip-bottom"
+                                            data-tip="Edit Labels"
+                                        >
+                                            <TagsIcon size={16} />
+                                        </button>
                                     </div>
                                 </div>
-
-                                {/* LABELS */}
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setActiveMenu(activeMenu === 'labels' ? null : 'labels')}
-                                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors tooltip tooltip-bottom"
-                                        data-tip="Edit Labels"
-                                    >
-                                        <TagsIcon size={16} />
-                                    </button>
-
-                                    <div className="absolute bottom-full left-0 mb-2">
-                                        <LabelPopUP
-                                            isOpen={activeMenu === 'labels'}
-                                            onClose={() => setActiveMenu(null)}
-                                            selectedLabels={list.labels}
-                                            onUpdate={handleLabelsChange}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
+                            )}
+                            {/* Restore button in bin */}
+                            {list.deleted && (
+                                <button
+                                    onClick={() => restoreFromBin(list.id)}
+                                    className="...hover:bg-green-50...hover:text-green-600..."
+                                    data-tip="Restore to Home"
+                                >
+                                    <RotateCcw size={16} />
+                                </button>
+                            )}
 
                             {/* Right: Delete Button */}
                             <button
-                                onClick={() => setActiveMenu(activeMenu === 'delete' ? null : 'delete')}
+                                onClick={handleTrashClick}
                                 className="p-1.5 ml-auto rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors tooltip tooltip-bottom"
                                 data-tip="Delete List"
                             >
@@ -243,27 +237,58 @@ export default function ListCard({ list }) {
                         </div>
                     </div>
 
-                    {/* 5. DELETE MODAL */}
+                    {/* MODALS */}
                     <Modal
-                        openModal={activeMenu === 'delete'}
+                        openModal={activeMenu === 'delete-forever'}
                         closeModal={() => setActiveMenu(null)}
                     >
                         <div className="flex flex-col items-center text-center">
-                            <h3 className="text-lg font-bold text-gray-800 mb-2">Delete this list?</h3>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">
+                                {list.deleted ? 'Delete Forever?' : 'Move to Bin?'}
+                            </h3>
                             <p className="text-gray-500 text-sm mb-6">
-                                Are you sure you want to delete <strong>"{list.title}"</strong>?
+                                {list.deleted ? (
+                                    <>
+                                        This will <strong>permanently delete</strong> the list <strong>"{list.title}"</strong>. This action cannot be undone.
+                                    </>
+                                ) : (
+                                    <>
+                                        Move <strong>"{list.title}"</strong> to the bin? You can restore it later.
+                                    </>
+                                )}
                             </p>
                             <div className="flex gap-3 w-full">
                                 <button onClick={() => setActiveMenu(null)} className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium">
                                     Cancel
                                 </button>
                                 <button onClick={() => confirmDelete(list.id)} className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium shadow-sm">
-                                    Delete
+                                    {list.deleted ? 'Delete Forever' : 'Move to Bin'}
                                 </button>
                             </div>
                         </div>
                     </Modal>
 
+                    <div className="absolute bottom-full left-0 mb-2">
+                        <ColorPopUp
+                            isOpen={activeMenu === 'palette'}
+                            onClose={() => setActiveMenu(null)}
+                            selectedColor={themeColor}
+                            onSelect={(key) => {
+                                setThemeColor(key);
+                                handleColorChange(key);
+                            }}
+                            palette={COLOR_PALETTE}
+                        />
+                    </div>
+
+                    <div className="absolute bottom-full left-0 mb-2">
+                        <LabelPopUP
+                            isOpen={activeMenu === 'labels'}
+                            onClose={() => setActiveMenu(null)}
+                            selectedLabels={list.labels}
+                            onUpdate={handleLabelsChange}
+                        />
+                    </div>
                 </div>
             </div>
         </DndContext>

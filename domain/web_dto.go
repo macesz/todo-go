@@ -17,6 +17,7 @@ type TodoListDTO struct {
 	Color     *string   `json:"color,omitempty"`
 	Labels    []string  `json:"labels,omitempty"`
 	CreatedAt string    `json:"created_at"`
+	Deleted   bool      `json:"deleted"`
 	Items     []TodoDTO `json:"items,omitempty"`
 }
 
@@ -27,9 +28,10 @@ type CreateTodoListRequestDTO struct {
 }
 
 type UpdateTodoListRequestDTO struct {
-	Title  string   `json:"title,omitempty"`
-	Color  *string  `json:"color,omitempty"`
-	Labels []string `json:"labels,omitempty"`
+	Title   string   `json:"title,omitempty"`
+	Color   *string  `json:"color,omitempty"`
+	Labels  []string `json:"labels,omitempty"`
+	Deleted bool     `json:"deleted,omitempty"`
 }
 
 // TODO

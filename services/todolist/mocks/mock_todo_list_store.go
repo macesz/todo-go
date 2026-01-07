@@ -289,8 +289,8 @@ func (_c *TodoListStore_List_Call) RunAndReturn(run func(ctx context.Context, us
 }
 
 // Update provides a mock function for the type TodoListStore
-func (_mock *TodoListStore) Update(ctx context.Context, id int64, title string, color string, labels []string) (*domain.TodoList, error) {
-	ret := _mock.Called(ctx, id, title, color, labels)
+func (_mock *TodoListStore) Update(ctx context.Context, id int64, title string, color string, labels []string, deleted bool) (*domain.TodoList, error) {
+	ret := _mock.Called(ctx, id, title, color, labels, deleted)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
@@ -298,18 +298,18 @@ func (_mock *TodoListStore) Update(ctx context.Context, id int64, title string, 
 
 	var r0 *domain.TodoList
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, string, []string) (*domain.TodoList, error)); ok {
-		return returnFunc(ctx, id, title, color, labels)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, string, []string, bool) (*domain.TodoList, error)); ok {
+		return returnFunc(ctx, id, title, color, labels, deleted)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, string, []string) *domain.TodoList); ok {
-		r0 = returnFunc(ctx, id, title, color, labels)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, string, string, []string, bool) *domain.TodoList); ok {
+		r0 = returnFunc(ctx, id, title, color, labels, deleted)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*domain.TodoList)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int64, string, string, []string) error); ok {
-		r1 = returnFunc(ctx, id, title, color, labels)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int64, string, string, []string, bool) error); ok {
+		r1 = returnFunc(ctx, id, title, color, labels, deleted)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -327,11 +327,12 @@ type TodoListStore_Update_Call struct {
 //   - title string
 //   - color string
 //   - labels []string
-func (_e *TodoListStore_Expecter) Update(ctx interface{}, id interface{}, title interface{}, color interface{}, labels interface{}) *TodoListStore_Update_Call {
-	return &TodoListStore_Update_Call{Call: _e.mock.On("Update", ctx, id, title, color, labels)}
+//   - deleted bool
+func (_e *TodoListStore_Expecter) Update(ctx interface{}, id interface{}, title interface{}, color interface{}, labels interface{}, deleted interface{}) *TodoListStore_Update_Call {
+	return &TodoListStore_Update_Call{Call: _e.mock.On("Update", ctx, id, title, color, labels, deleted)}
 }
 
-func (_c *TodoListStore_Update_Call) Run(run func(ctx context.Context, id int64, title string, color string, labels []string)) *TodoListStore_Update_Call {
+func (_c *TodoListStore_Update_Call) Run(run func(ctx context.Context, id int64, title string, color string, labels []string, deleted bool)) *TodoListStore_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -353,12 +354,17 @@ func (_c *TodoListStore_Update_Call) Run(run func(ctx context.Context, id int64,
 		if args[4] != nil {
 			arg4 = args[4].([]string)
 		}
+		var arg5 bool
+		if args[5] != nil {
+			arg5 = args[5].(bool)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
 			arg4,
+			arg5,
 		)
 	})
 	return _c
@@ -369,7 +375,7 @@ func (_c *TodoListStore_Update_Call) Return(todoList *domain.TodoList, err error
 	return _c
 }
 
-func (_c *TodoListStore_Update_Call) RunAndReturn(run func(ctx context.Context, id int64, title string, color string, labels []string) (*domain.TodoList, error)) *TodoListStore_Update_Call {
+func (_c *TodoListStore_Update_Call) RunAndReturn(run func(ctx context.Context, id int64, title string, color string, labels []string, deleted bool) (*domain.TodoList, error)) *TodoListStore_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

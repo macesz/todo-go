@@ -11,8 +11,8 @@ export const ListProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [selectedLabel, setSelectedLabel] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [view, setView] = useState('home');
 
-    console.log("Lists", lists);
 
     const updateListItemsLocally = useCallback((listId, newItems) => {
         setLists(prevLists => prevLists.map(list =>
@@ -48,11 +48,6 @@ export const ListProvider = ({ children }) => {
 
     // Filter lists
 
-    const applyLabelFilter = (allLists, label) => {
-        if (!label) return allLists;
-        return allLists.filter(list => list.labels?.includes(label))
-    }
-
     const applySearchFilter = (allLists, query) => {
         const cleanQuery = query.toLowerCase().trim();
         if (!cleanQuery) return;
@@ -67,18 +62,26 @@ export const ListProvider = ({ children }) => {
     };
 
     const filteredList = useMemo(() => {
-        if (searchQuery.trim() != "" && selectedLabel) {
-            const labelLists = applyLabelFilter(lists, selectedLabel)
-            return applySearchFilter(labelLists, searchQuery)
+
+        let visibleLists = lists;
+
+        if (view === 'bin') {
+            visibleLists = visibleLists.filter(list => list.deleted === true)
+        } else {
+            visibleLists = visibleLists.filter(list => list.deleted === false);
+        }
+
+        if (selectedLabel) {
+            visibleLists = visibleLists.filter(list => list.labels?.includes(selectedLabel))
         }
 
         if (searchQuery.trim() != "") {
-            return applySearchFilter(lists, searchQuery)
+            return applySearchFilter(visibleLists, searchQuery)
         }
 
-        return applyLabelFilter(lists, selectedLabel)
+        return visibleLists
 
-    }, [lists, selectedLabel, searchQuery]);
+    }, [lists, selectedLabel, searchQuery, view]);
 
     // Create, Update, Delete Handlers
     const handleCreateList = async (listData) => {
@@ -110,9 +113,27 @@ export const ListProvider = ({ children }) => {
         }
     }
 
+    const moveToBin = useCallback(async (listId) => {
+        const listToUpdate = lists.find(list => list.id === listId);
+        const updatedList = { ...listToUpdate, deleted: true };
+        await updateTodoList(user, listId, updatedList);
+        setLists(prevLists => prevLists.map(list =>
+            list.id === listId ? updatedList : list
+        ));
+    }, [user, lists, setLists]);
+
+    const restoreFromBin = useCallback(async (listId) => {
+        const listToMove = lists.find(l => l.id === listId);
+        const updatedList = { ...listToMove, deleted: false };
+
+        await updateTodoList(user, listId, updatedList);
+        setLists(prevLists => prevLists.map(list =>
+            list.id === listId ? updatedList : list
+        ));
+    }, [user, lists, setLists]);
+
 
     const handleDeleteList = useCallback(async (listId) => {
-        if (!window.confirm("Are you sure you want to delete this list?")) return;
         try {
             await deleteTodoList(user, listId);
             setLists(prevLists => prevLists.filter(list => list.id !== listId));
@@ -172,13 +193,20 @@ export const ListProvider = ({ children }) => {
                 uniqueLabels,
                 searchQuery,
                 setSearchQuery,
+                view,
+                setView,
                 selectedLabel,
-                filterByLabel: (name) => setSelectedLabel(name),
+                filterByLabel: (name) => {
+                    setView('home');
+                    setSelectedLabel(name);
+                },
                 clearFilter: () => {
                     setSelectedLabel(null);
                     setSearchQuery("");
                 },
                 handleCreateList,
+                moveToBin,
+                restoreFromBin,
                 handleDeleteList,
                 handleUpdateList,
                 renameLabelGlobally,
