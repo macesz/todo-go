@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { fetchTodosInList } from '../Services/apiServices';
-import { useAuth } from '../Context/AuthContext';
+import { fetchTodosInList } from '../services/apiServices';
+import { useAuth } from '../context/AuthContext';
 
 
 export const useFetchTodoItems = (listId) => {

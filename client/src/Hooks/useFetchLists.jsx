@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { useAuth } from '../Context/AuthContext';
-import { fetchTodoListsWithItems } from '../Services/apiServices';
+import { useAuth } from '../context/AuthContext';
+import { fetchTodoListsWithItems } from '../services/apiServices';
 
 export const useFetchLists = () => {
 

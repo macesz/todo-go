@@ -10,8 +10,9 @@ import {
     Redo 
 } from 'lucide-react';
 import { COLOR_PALETTE } from '../../data/ColorPalette'; 
-import ColorPopUp from '../Ui/ColorPopUp';
-import LabelPopUP from '../Ui/LabelPopUP';
+import ColorPopUp from '../ui/ColorPopUp';
+import LabelPopUP from '../ui/LabelPopUP';
+
 
 export default function CreateList({ onSave }) {
     // --- State ---

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import { createTodoList, createTodoInList, updateTodoList, deleteTodoList } from '../Services/apiServices';
-import { useFetchLists } from '../Hooks/useFetchLists';
+import { createTodoList, createTodoInList, updateTodoList, deleteTodoList } from '../services/apiServices';
+import { useFetchLists } from '../hooks/useFetchLists';
 
 const ListContext = createContext();
 

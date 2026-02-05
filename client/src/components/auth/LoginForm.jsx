@@ -4,8 +4,8 @@ import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { FaFacebookF, FaGoogle, FaLinkedinIn } from 'react-icons/fa';
 import SocialButton from '../ui/SocialButton.jsx';
 import InputIcon from '../ui/InputIcon.jsx';
-import { useAuth } from '../../Context/AuthContext.jsx';
-import { loginUser } from "../../Services/apiServices.js";
+import { useAuth } from '../../context/AuthContext.jsx';
+import { loginUser } from "../../services/apiServices.js";
 
 export default function LoginForm() {
 
@@ -24,7 +24,7 @@ export default function LoginForm() {
 
         try {
             const user = await loginUser(userData);
-            
+
             login(user);
             navigate('/');
         } catch (error) {

@@ -3,15 +3,15 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
 import './index.css'
-import ProtectedRoute from './components/Utils/ProtectedRoute.jsx'
+import ProtectedRoute from './components/utils/ProtectedRoute.jsx'
 import { Navigate } from 'react-router-dom';
 
-import AuthPage from './Pages/AuthPage.jsx'
-import AuthProvider from './Context/AuthContext.jsx';
-import MainLayout from './Layouts/MainLayout.jsx';
-import TodoCard from './Pages/TodoCard.jsx';
+import AuthPage from './pages/AuthPage.jsx'
+import AuthProvider from './context/AuthContext.jsx';
+import MainLayout from './layouts/MainLayout.jsx';
+import TodoCard from './pages/TodoCard.jsx';
 import HomePage from './pages/HomePage.jsx'
-import { ListProvider } from './Context/ListContext.jsx'
+import { ListProvider } from './context/ListContext.jsx'
 
 const router = createBrowserRouter([
   // Public Routes (No Layout, No Protection)

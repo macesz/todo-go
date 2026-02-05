@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '../Context/AuthContext'; 
-import { fetchTodoListByLabel } from '../Services/apiServices';
+import { useAuth } from '../context/AuthContext';
+import { fetchTodoListByLabel } from '../services/apiServices';
 
 export const useFetchListsByLabel = (label) => {
     const [lists, setLists] = useState([]);
@@ -25,6 +25,6 @@ export const useFetchListsByLabel = (label) => {
         if (user) fetchListsByLabel();
     }, [user, label]);
 
-    return { lists, loading, error };   
- 
+    return { lists, loading, error };
+
 }
