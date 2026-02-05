@@ -1,0 +1,42 @@
+services:
+  # Database: PostgreSQL
+  db:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-password}
+      POSTGRES_DB: ${DB_NAME:-go_todo}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-go_todo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend: Go App
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      DB_ADDR: db:5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-password}
+      DB_NAME: ${DB_NAME:-go_todo}
+      JWT_SECRET: ${JWT_SECRET:-supersecret}
+      SERVER_PORT: 3000
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "./main migrate && ./main"
+
+  # Frontend: NGINX + Static React Build
+  frontend:
+    build:
+      context: ./client
+      dockerfile: ../Dockerfile.frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
