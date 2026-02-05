@@ -1,5 +1,4 @@
-import { useAuth } from '../../Context/AuthContext.jsx';
-import AuthFailureModal from './AuthFailureModal.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { Navigate, useLocation } from 'react-router-dom';
 
 

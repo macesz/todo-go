@@ -4,9 +4,9 @@ import { ChevronsRight, Search, Settings, LogOut, X } from "lucide-react";
 import { List, Trash2, Edit3, ChevronDown, ChevronUp } from "lucide-react";
 import MenuItem from "./MenuItem.jsx";
 import LabelItem from "./LabelItem.jsx";
-import { useAuth } from "../../Context/AuthContext.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 import EditLabelsModal from "./EditLabelsModal.jsx";
-import { useLists } from "../../Context/ListContext.jsx";
+import { useLists } from "../../context/ListContext.jsx";
 
 
 

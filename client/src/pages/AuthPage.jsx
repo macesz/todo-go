@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import OverlayPanel from '../components/auth/OverlayPanel';
-import SignUpForm from '../components/Auth/SignUpForm';
-import LoginForm from '../components/Auth/LoginForm';
+import SignUpForm from '../components/auth/SignUpForm';
+import LoginForm from '../components/auth/LoginForm';
 
 export default function AuthPage() {
 

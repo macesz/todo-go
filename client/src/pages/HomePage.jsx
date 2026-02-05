@@ -1,15 +1,15 @@
 import { INITIAL_TASKS_LISTS } from '../data/MockData.js';
-import ListCard from '../components/Todos/ListCard.jsx';
-import Loading from '../components/Loading/Loading.jsx';
-import ErrorComponent from '../components/Utils/ErrorComponent.jsx';
-import CreateList from '../components/Todos/CreateList.jsx';
-import { useLists } from '../Context/ListContext.jsx';
+import ListCard from '../components/todos/ListCard.jsx';
+import Loading from '../components/loading/Loading.jsx';
+import ErrorComponent from '../components/utils/ErrorComponent.jsx';
+import CreateList from '../components/todos/CreateList.jsx';
+import { useLists } from '../context/ListContext.jsx';
 
 
 
 export default function HomePage() {
 
-const { lists, handleCreateList, error} = useLists(); 
+    const { lists, handleCreateList, error } = useLists();
 
     // if (loading) return <Loading />;
     if (error) return <ErrorComponent message={error} />;

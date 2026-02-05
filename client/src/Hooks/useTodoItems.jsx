@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { updateTodoItem, createTodoInList, deleteTodoItem } from '../Services/apiServices';
+import { updateTodoItem, createTodoInList, deleteTodoItem } from '../services/apiServices';
 
 export const useTodoItems = (initialItems, listId, user, onSyncGlobal) => {
     const [todoItems, setTodoItems] = useState(initialItems || []);
@@ -10,7 +10,7 @@ export const useTodoItems = (initialItems, listId, user, onSyncGlobal) => {
     }, [todoItems, listId, onSyncGlobal])
 
     // 1. ADD TODO
-   const addTodo = useCallback(async (title) => {
+    const addTodo = useCallback(async (title) => {
         try {
             const newTodo = await createTodoInList(user, listId, { title, done: false });
             if (newTodo) {
@@ -28,7 +28,7 @@ export const useTodoItems = (initialItems, listId, user, onSyncGlobal) => {
             if (!todo) return prev;
 
             // Perform API call in background
-            updateTodoItem(user, listId, id, {title: todo.title, done: !todo.done })
+            updateTodoItem(user, listId, id, { title: todo.title, done: !todo.done })
                 .catch(() => setTodoItems(initial => [...initial])); // Simple rollback logic
 
             return prev.map(t => t.id === id ? { ...t, title: todo.title, done: !t.done } : t);
@@ -46,7 +46,7 @@ export const useTodoItems = (initialItems, listId, user, onSyncGlobal) => {
     }, [user, listId]);
 
     // 4. EDIT TODO
-   const editTodo = useCallback(async (id, newTitle) => {
+    const editTodo = useCallback(async (id, newTitle) => {
         setTodoItems(prev => prev.map(t => t.id === id ? { ...t, title: newTitle } : t));
         try {
             await updateTodoItem(user, listId, id, { title: newTitle });

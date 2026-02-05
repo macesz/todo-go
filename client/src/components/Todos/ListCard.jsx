@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, PaletteIcon, TagsIcon, Trash2, RotateCcw } from 'lucide-react';
-import TaskItem from './TodoItem';
-import { COLOR_PALETTE } from '../../data/ColorPalette';
+import TaskItem from './TodoItem.jsx';
+import { COLOR_PALETTE } from '../../data/ColorPalette.js';
 import {
     DndContext,
     KeyboardSensor,
@@ -16,12 +16,12 @@ import {
     arrayMove,
     sortableKeyboardCoordinates
 } from '@dnd-kit/sortable';
-import ColorPopUp from '../Ui/ColorPopUp';
-import Modal from '../Utils/Modal';
-import LabelPopUP from '../Ui/LabelPopUP';
-import { useAuth } from '../../Context/AuthContext'; // Import Auth
-import { useLists } from '../../Context/ListContext.jsx';
-import { useTodoItems } from '../../Hooks/useTodoItems.jsx'
+import ColorPopUp from '../ui/ColorPopUp.jsx';
+import Modal from '../utils/Modal.jsx';
+import LabelPopUP from '../ui/LabelPopUP.jsx';
+import { useAuth } from '../../context/AuthContext.jsx'; // Import Auth
+import { useLists } from '../../context/ListContext.jsx';
+import { useTodoItems } from '../../hooks/useTodoItems.jsx'
 
 export default function ListCard({ list }) {
     const { user } = useAuth();

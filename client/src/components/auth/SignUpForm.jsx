@@ -4,7 +4,7 @@ import { FaFacebookF, FaGoogle, FaLinkedinIn } from 'react-icons/fa';
 import InputIcon from '../ui/InputIcon';
 import SocialButton from '../ui/SocialButton';
 import { useNavigate } from 'react-router-dom';
-import { registerUser } from '../../Services/apiServices';
+import { registerUser } from '../../services/apiServices';
 
 
 export default function SignUpForm() {
